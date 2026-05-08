@@ -77,7 +77,7 @@ class CheckStockLevelsTool(Tool):
     required = ["min_stock"]
 
     async def execute(self, input_data: dict[str, Any], sap_client: Any) -> dict[str, Any]:
-        min_stock = input_data["min_stock"]
+        min_stock = int(input_data["min_stock"])  # Sanitize: force integer
         odata = ODataParams(
             filter=f"QuantityOnStock lt {min_stock}",
             select="ItemCode,ItemName,QuantityOnStock,QuantityOrderedFromVendors",

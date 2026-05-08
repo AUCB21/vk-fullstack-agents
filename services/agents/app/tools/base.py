@@ -37,6 +37,11 @@ class Tool(ABC):
 
     async def safe_execute(self, input_data: dict[str, Any], sap_client: Any) -> dict[str, Any]:
         """Execute with error handling. Returns error dict on failure."""
+        if sap_client is None:
+            return {
+                "error": "SAP Service Layer is not connected. Cannot execute tool.",
+                "tool": self.name,
+            }
         try:
             return await self.execute(input_data, sap_client)
         except Exception as e:

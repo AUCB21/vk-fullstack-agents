@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     # App
     agents_url: str = "http://localhost:8000"
     nextjs_url: str = "http://localhost:3000"
-    session_secret: str = "change-me-in-production"
+    session_secret: str = ""
     dev_mode: bool = False
 
     # LLM (Phase 1)

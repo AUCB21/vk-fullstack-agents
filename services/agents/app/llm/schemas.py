@@ -26,7 +26,3 @@ def tool_def(
 
 def string_param(description: str) -> dict[str, str]:
     return {"type": "string", "description": description}
-
-
-def int_param(description: str) -> dict[str, str]:
-    return {"type": "integer", "description": description}

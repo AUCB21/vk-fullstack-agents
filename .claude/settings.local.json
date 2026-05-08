@@ -37,7 +37,17 @@
       "Bash(.venv/Scripts/python -m ruff check app/)",
       "Bash(.venv/Scripts/python -c \"from app.main import app; print\\('FastAPI app imported OK'\\)\")",
       "Read(//c/Users/Agus/.claude/skills/**)",
-      "Read(//c/Users/Agus/.claude/plugins/marketplaces/anthropic-agent-skills/skills/**)"
+      "Read(//c/Users/Agus/.claude/plugins/marketplaces/anthropic-agent-skills/skills/**)",
+      "Bash(grep -E \"^d|\\\\.py$|\\\\.txt$|\\\\.toml$\")",
+      "Bash(python -m py_compile app/*.py app/*/*.py)",
+      "Bash(python -c ':*)",
+      "Bash(python -m ast app/llm/provider.py app/sap/client.py app/sap/session.py)",
+      "Bash(grep -n \"router\\\\|prefix\" app/routers/*.py)",
+      "Bash(grep -B2 \"def health_check\\\\|def login\\\\|def logout\\\\|def chat\" app/routers/*.py)",
+      "Bash(grep -A1 \"def health_check\\\\|def login\\\\|def logout\\\\|def chat\" app/routers/*.py)",
+      "Bash(python -c \"import os; print\\(os.path.abspath\\('../../.env'\\)\\)\")",
+      "Bash(python3 -c ':*)",
+      "Bash(.venv/Scripts/python -c \"from app.main import app; print\\('OK'\\)\")"
     ]
   }
 }

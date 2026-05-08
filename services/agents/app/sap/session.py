@@ -18,6 +18,8 @@ class SAPSession:
         self._cookies: httpx.Cookies = httpx.Cookies()
         self._last_activity: float = 0
         self._client: httpx.AsyncClient | None = None
+        self._last_username: str | None = None
+        self._last_password: str | None = None
 
     def _build_ssl_context(self) -> ssl.SSLContext | bool:
         if not settings.sap_sl_verify_ssl:
@@ -53,16 +55,23 @@ class SAPSession:
             error_detail = {}
             try:
                 error_detail = response.json()
-            except Exception:
-                pass
+            except (ValueError, TypeError):
+                logger.warning("Could not parse SAP login error response")
             raise SAPAuthError(
                 message=f"SAP login failed: {response.status_code}",
                 detail=error_detail,
             )
 
-        self._session_id = response.json().get("SessionId")
+        body = response.json()
+        session_id = body.get("SessionId")
+        if not session_id:
+            raise SAPAuthError(message="SAP login returned no SessionId")
+
+        self._session_id = session_id
         self._cookies = response.cookies
         self._last_activity = time.time()
+        self._last_username = username
+        self._last_password = password
 
         # Update client cookies for subsequent requests
         if self._client:

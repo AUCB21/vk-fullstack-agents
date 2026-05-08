@@ -35,8 +35,16 @@ class SAPClient:
 
         # Auto-refresh on 401 and retry once
         if response.status_code == 401 and retry_on_401:
-            logger.warning("SAP SL returned 401, session may be expired")
-            raise SAPAuthError("Session expired — re-authentication required")
+            logger.warning("SAP SL returned 401 — attempting re-auth and retry")
+            try:
+                await self._session.login(
+                    self._session._last_username or "",
+                    self._session._last_password or "",
+                )
+                client = await self._session.get_client()
+                response = await client.request(method, path, params=params, json=json)
+            except Exception:
+                raise SAPAuthError("Session expired and re-auth failed")
 
         self._handle_error(response)
 
@@ -50,8 +58,10 @@ class SAPClient:
 
         try:
             body = response.json()
-            error_msg = body.get("error", {}).get("message", {}).get("value", str(body))
-        except Exception:
+            error_obj = body.get("error", {}) if isinstance(body, dict) else {}
+            msg_obj = error_obj.get("message", {}) if isinstance(error_obj, dict) else {}
+            error_msg = msg_obj.get("value", str(body)) if isinstance(msg_obj, dict) else str(body)
+        except (ValueError, TypeError):
             error_msg = response.text or f"HTTP {response.status_code}"
 
         if response.status_code == 404:

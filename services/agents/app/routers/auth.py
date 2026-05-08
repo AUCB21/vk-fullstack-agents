@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from app.config import settings
 from app.sap.exceptions import SAPAuthError
 from app.sap.session import SAPSession
 
@@ -31,7 +32,7 @@ async def login(body: LoginRequest, request: Request):
         value=session_id,
         httponly=True,
         samesite="lax",
-        secure=False,  # Set True in production with HTTPS
+        secure=not settings.dev_mode,
         max_age=1800,
     )
     return response

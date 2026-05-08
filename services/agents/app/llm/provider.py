@@ -37,6 +37,8 @@ class LLMProvider:
     """Wraps Anthropic Python SDK for streaming chat with tool-use."""
 
     def __init__(self, model: str | None = None):
+        if not settings.anthropic_api_key:
+            raise ValueError("ANTHROPIC_API_KEY is not set")
         self._client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
         self._model = model or settings.llm_model
 
@@ -77,21 +79,3 @@ class LLMProvider:
             has_tool_calls = any(b.type == "tool_use" for b in response.content)
             if not has_tool_calls:
                 yield EndEvent()
-
-    async def chat(
-        self,
-        system_prompt: str,
-        messages: list[dict[str, Any]],
-        tools: list[dict[str, Any]] | None = None,
-    ) -> anthropic.types.Message:
-        """Non-streaming chat completion. Returns full message."""
-        kwargs: dict[str, Any] = {
-            "model": self._model,
-            "max_tokens": 4096,
-            "system": system_prompt,
-            "messages": messages,
-        }
-        if tools:
-            kwargs["tools"] = tools
-
-        return await self._client.messages.create(**kwargs)

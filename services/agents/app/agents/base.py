@@ -66,7 +66,7 @@ class BaseAgent:
     ) -> AsyncGenerator[AgentEvent, None]:
         """Run the agent loop. Yields events as the agent thinks and acts."""
         messages = [*history, {"role": "user", "content": message}]
-        tool_defs = self.tool_definitions() or None
+        tool_defs = self.tool_definitions() if self.tools else None
 
         for iteration in range(MAX_ITERATIONS):
             logger.info("Agent iteration %d", iteration + 1)
