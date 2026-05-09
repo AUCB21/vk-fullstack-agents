@@ -239,7 +239,7 @@ data: {}
 - [x] Implement streaming indicator — typing dots while waiting, tool-call status while executing
 - [x] Implement sidebar — agent selector (list of available agents with descriptions)
 - [x] Implement NextJS API route `/api/agents/chat` — proxies POST to FastAPI, forwards SSE stream to browser
-- [ ] Responsive layout: sidebar collapses on mobile, full-width chat panel
+- [x] Responsive layout: sidebar collapses on mobile, full-width chat panel
 
 **UI Components** (shadcn/ui):
 - `ScrollArea` for message list
@@ -256,6 +256,14 @@ data: {}
 - [x] Model selector (Haiku/Sonnet) — persists per chat session
 - [x] DEV_MODE auth bypass for development without SL access
 - [x] Full design model adaptation (oklch accent system, rich blocks, tool calls, KPIs, sparklines, citations)
+- [x] Light/dark theme toggle — persists in localStorage, toggle in sidebar footer
+- [x] Mobile responsive sidebar — hamburger menu, overlay with backdrop, auto-close on action
+- [x] Voice input (mic button) — Web Speech API, Argentinian Spanish (es-AR), zero deps
+- [x] Keyboard shortcuts — Ctrl+K new chat, ESC closes citation popover
+- [x] Dynamic page title — updates with active agent name
+- [x] Non-functional buttons disabled with "Proximamente" tooltips
+- [x] Removed hardcoded placeholders (SL latency, breadcrumb, inventory badge)
+- [x] SL connection indicator — dynamic based on backend availability
 
 **Constraints**:
 - No file uploads
@@ -263,7 +271,7 @@ data: {}
 
 **Acceptance**: Open browser → select agent → type question → see streamed response with tool calls visible.
 
-> **Status**: ~95% complete. Remaining: mobile responsive sidebar.
+> **Status**: Complete. All Phase 2 tasks delivered including extras.
 
 ---
 
@@ -391,6 +399,44 @@ These are noted for reference but have no phase or timeline:
 - **Role-based access control**: Restrict agent capabilities based on SAP user roles.
 - **File uploads**: Allow users to upload documents for agents to process.
 - **UI tweaks panel**: User-facing settings panel for theme (light/dark), accent color, and UI density preferences. Adapted from the design model's tweaks system.
+- **Busqueda en tiempo real (Consultas Generales)**: Agregar capacidad de busqueda web en tiempo real al agente de Consultas Generales. Evaluar soporte de tool-use con Anthropic para web search, o integrar una API de busqueda (SerpAPI, Tavily, o similar) como herramienta del agente general.
+
+---
+
+### Code Review (2026-05-08)
+
+**Scope**: Full codebase review — backend (Python) + frontend (TypeScript). 28 issues found, 22 fixed, 2 deferred by design.
+
+**Critical bugs — FIXED**:
+- [x] `sap/client.py` — 401 retry logic was broken (raised instead of retrying). Now re-authenticates and retries once.
+- [x] `sap/session.py` — No null check on SessionId after login. Now validates and raises if missing.
+- [x] `tools/base.py` — `sap_client` could be None, crashing tools. Now returns clean error to LLM.
+- [x] `use-streaming.ts` — Cancellation check ran immediately, never cleared timeout. Fixed with polling interval.
+- [x] `config.py` — `.env` path resolved incorrectly. Fixed with dual-path lookup.
+
+**Security — FIXED**:
+- [x] `tools/sap_inventory.py` — OData filter injection via f-string. Fixed with `int()` cast on input.
+- [x] `config.py` — Hardcoded session secret default. Removed, now requires env var.
+- [x] `api/agents/chat/route.ts` — Forwarded all cookies to backend. Now filters to B1SESSION only. Added JSON validation.
+
+**Warnings — FIXED**:
+- [x] `llm/provider.py` — No API key validation. Now raises ValueError if empty.
+- [x] `agents/base.py` — Empty tools list `[]` was falsy, became None. Fixed with explicit check.
+- [x] `routers/auth.py` — Cookie secure flag hardcoded to False. Now tied to `DEV_MODE`.
+- [x] `sap/client.py` — Nested `.get()` chain could TypeError on unexpected SAP error shapes. Fixed with type guards.
+- [x] `sap/session.py` — Bare `except Exception: pass` swallowed errors silently. Now catches specific exceptions with logging.
+- [x] `topbar.tsx` — Dead theme toggle state removed (toggled but never applied).
+
+**Dead code — CLEANED**:
+- [x] `llm/provider.py` — Removed unused `chat()` method (only `stream_chat()` is used).
+- [x] `llm/schemas.py` — Removed unused `int_param()` helper.
+- [x] `lib/types.ts` — Removed unused `HealthResponse` type file.
+
+**Deferred (by design)**:
+- `mock-data.ts` unused exports (SALES_ORDERS, PURCHASE_ORDERS, RECENT_CHATS) — kept for Phase 4 agents + demo mode.
+- `message-actions.tsx` empty click handlers — visual-only placeholders for future functionality.
+
+> **Status**: Review complete. All critical, security, and warning issues resolved. Build + lint clean.
 
 ---
 
@@ -432,6 +478,7 @@ LLM_MODEL=claude-sonnet-4-20250514
 NEXTJS_URL=http://localhost:3000
 AGENTS_URL=http://localhost:8000
 SESSION_SECRET=your-secret-key
+DEV_MODE=true                       # Bypasses auth middleware (no SL needed)
 
 # Scheduler (Phase 5 only)
 # SCHEDULER_ENABLED=false
