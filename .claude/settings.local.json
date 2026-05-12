@@ -48,7 +48,8 @@
       "Bash(python -c \"import os; print\\(os.path.abspath\\('../../.env'\\)\\)\")",
       "Bash(python3 -c ':*)",
       "Bash(.venv/Scripts/python -c \"from app.main import app; print\\('OK'\\)\")",
-      "Bash(node -e \"const {tool} = require\\('ai'\\); const {z} = require\\('zod'\\); const t = tool\\({description:'test', parameters: z.object\\({x: z.string\\(\\)}\\), execute: async \\({x}\\) => \\({ok:true}\\)}\\); console.log\\('inputSchema:', t.inputSchema\\); console.log\\('parameters:', t.parameters\\); console.log\\('keys:', Object.keys\\(t\\)\\);\")"
+      "Bash(node -e \"const {tool} = require\\('ai'\\); const {z} = require\\('zod'\\); const t = tool\\({description:'test', parameters: z.object\\({x: z.string\\(\\)}\\), execute: async \\({x}\\) => \\({ok:true}\\)}\\); console.log\\('inputSchema:', t.inputSchema\\); console.log\\('parameters:', t.parameters\\); console.log\\('keys:', Object.keys\\(t\\)\\);\")",
+      "Bash(xargs grep:*)"
     ]
   }
 }
