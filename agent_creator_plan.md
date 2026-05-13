@@ -211,118 +211,112 @@ apps/web/
 
 ## Fases de implementacion
 
-### Fase 0: Setup y scaffolding (~30 min)
+### Fase 0: Setup y scaffolding (~30 min) ✅
 
-- [ ] Instalar `@dnd-kit/core` y `@dnd-kit/utilities`
-- [ ] Crear estructura de directorios: `app/builder/[agentId]/`, `components/builder/`, `lib/builder/`
-- [ ] Crear `builder-types.ts` con todos los tipos TypeScript
-- [ ] Crear `node-library.ts` migrando `NODE_LIBRARY` del demo con iconos lucide
-- [ ] Crear `builder-defaults.ts` con configs default por tipo de nodo
-- [ ] Crear `app/builder/[agentId]/layout.tsx` — layout independiente (sin ChatProvider, con BuilderProvider)
-- [ ] Crear `app/builder/[agentId]/page.tsx` — shell basico que renderiza `BuilderLayout`
-- [ ] Verificar que `/builder/new` carga sin errores
+- [x] Instalar `@dnd-kit/core` y `@dnd-kit/utilities`
+- [x] Crear estructura de directorios: `app/builder/[agentId]/`, `components/builder/`, `lib/builder/`
+- [x] Crear `builder-types.ts` con todos los tipos TypeScript
+- [x] Crear `node-library.ts` migrando `NODE_LIBRARY` del demo con iconos lucide
+- [x] Crear `builder-defaults.ts` con configs default por tipo de nodo
+- [x] Crear `app/builder/[agentId]/layout.tsx` — layout independiente (sin ChatProvider, con BuilderProvider)
+- [x] Crear `app/builder/[agentId]/page.tsx` — shell basico que renderiza `BuilderLayout`
+- [x] Verificar que `/builder/new` carga sin errores
 
 **Archivos creados**: 8 nuevos
 **Verificacion**: `next build` pasa, ruta `/builder/new` renderiza shell vacio
 
 ---
 
-### Fase 1: Estado y persistencia (~45 min)
+### Fase 1: Estado y persistencia (~45 min) ✅
 
-- [ ] Crear `builder-reducer.ts` — reducer con todas las acciones tipadas
-- [ ] Implementar undo/redo (mantener stacks de past/future states, max 50)
-- [ ] Crear `builder-context.tsx` — `BuilderProvider` con `useReducer`, auto-save debounced (2s)
-- [ ] Crear `builder-storage.ts` — funciones `saveAgentConfig`, `loadAgentConfig`, `listAgentConfigs`, `deleteAgentConfig`
+- [x] Crear `builder-reducer.ts` — reducer con todas las acciones tipadas
+- [x] Implementar undo/redo (mantener stacks de past/future states, max 50)
+- [x] Crear `builder-context.tsx` — `BuilderProvider` con `useReducer`, auto-save debounced (2s)
+- [x] Crear `builder-storage.ts` — funciones `saveAgentConfig`, `loadAgentConfig`, `listAgentConfigs`, `deleteAgentConfig`
 - [ ] Agregar schema Zod para validar `AgentConfig` al cargar desde localStorage
-- [ ] Conectar `page.tsx` con `BuilderProvider` — cargar config si existe, o crear nueva
+- [x] Conectar `page.tsx` con `BuilderProvider` — cargar config si existe, o crear nueva
 
 **Archivos creados**: 4 nuevos
 **Verificacion**: Abrir DevTools → Application → localStorage, verificar que se guarda/carga correctamente
 
 ---
 
-### Fase 2: Canvas y nodos estaticos (~1.5h)
+### Fase 2: Canvas y nodos estaticos (~1.5h) ✅
 
-- [ ] Crear `canvas.tsx` — div con grid background (radial-gradient dots, 22px spacing como el demo)
-- [ ] Crear `node.tsx` — componente visual fiel al demo:
+- [x] Crear `canvas.tsx` — div con grid background (radial-gradient dots, 22px spacing como el demo)
+- [x] Crear `node.tsx` → `builder-node.tsx` — componente visual fiel al demo:
   - Header con icon-wrap (coloreado por `data-kind`), nombre, meta badge
   - Body con rows (key-value pairs, soporte `mono`)
   - Footer con status dot + last run info
-  - Puertos in/out (circulos en los bordes)
+  - Puertos en 4 lados (top/right/bottom/left) — componente `Port` extraido
   - Estado `selected` con accent ring
-- [ ] Crear `wire-layer.tsx` — SVG overlay con curvas Bezier cubicas (copiar logica de `WireLayer` del demo)
-- [ ] Crear `canvas-pane.tsx` — wrapper que contiene topbar + canvas
-- [ ] Renderizar `INITIAL_NODES` y `WIRES` del demo como estado inicial para testing visual
-- [ ] Migrar estilos relevantes de `builder.css` a Tailwind + CSS module donde necesario:
-  - `.node`, `.node-hd`, `.node-body`, `.node-foot`, `.node-row` → Tailwind classes
-  - `.wire`, `.wire-flow` con animacion `dash` → CSS (Tailwind no cubre stroke-dasharray animation)
-  - `.port`, `.port.active` → Tailwind
-  - Canvas grid background → CSS custom (radial-gradient no tiene utilidad Tailwind directa)
-  - Colores por `data-kind` → CSS custom properties (como el demo)
+- [x] Crear `wire-layer.tsx` — SVG overlay con curvas Bezier cubicas + arrowhead markers
+- [x] Crear `canvas-pane.tsx` — wrapper que contiene topbar + canvas
+- [x] Renderizar `INITIAL_NODES` y `WIRES` del demo como estado inicial para testing visual
+- [x] Migrar estilos relevantes de `builder.css` a Tailwind + CSS puro
 
 **Archivos creados/modificados**: 4 componentes nuevos, 1 CSS parcial
 **Verificacion**: `/builder/new` muestra canvas con nodos estaticos posicionados, cables Bezier dibujados, colores por tipo
 
 ---
 
-### Fase 3: Drag & drop — nodos en canvas (~1.5h)
+### Fase 3: Drag & drop — nodos en canvas (~1.5h) ✅
 
-- [ ] Integrar `@dnd-kit/core` — `DndContext` en `BuilderLayout`
-- [ ] Hacer cada `Node` draggable con `useDraggable` — drag libre en canvas (no grid snap)
-- [ ] Implementar `onDragEnd` para actualizar posicion del nodo (`MOVE_NODE` action)
-- [ ] Agregar `DragOverlay` para feedback visual durante el drag (nodo fantasma semi-transparente)
-- [ ] Implementar canvas pan: mouse middle-button drag o Space+drag para mover todo el canvas
-- [ ] Implementar zoom: Ctrl+scroll para zoom in/out (50%–200%), almacenar en state
-- [ ] Aplicar `transform: scale(zoom) translate(panX, panY)` al contenedor de nodos
-- [ ] Verificar que los cables se actualizan en tiempo real durante el drag (WireLayer recalcula paths)
+- [x] Integrar `@dnd-kit/core` — `DndContext` en canvas
+- [x] Hacer cada `Node` draggable con `useDraggable` — drag libre en canvas (no grid snap)
+- [x] Implementar `onDragEnd` para actualizar posicion del nodo (`MOVE_NODE` action)
+- [x] Sin DragOverlay — se usa `useDraggable().transform` directamente con correccion de zoom
+- [x] Implementar canvas pan: Alt+click drag o middle-button drag (ref-based, zero re-renders)
+- [x] Implementar zoom: Ctrl+scroll para zoom in/out (25%–200%), rAF + debounced commit
+- [x] Aplicar `transform: scale(zoom) translate3d(panX, panY, 0)` al contenedor (GPU compositing)
+- [x] Cables se actualizan en tiempo real durante drag via `dragOffset` prop en WireLayer
 
 **Archivos modificados**: `canvas.tsx`, `node.tsx`, `builder-layout.tsx`
 **Verificacion**: Nodos se arrastran fluidamente, cables siguen al nodo, canvas se puede panear y zoomear
 
 ---
 
-### Fase 4: Drag from sidebar — agregar nodos (~1h)
+### Fase 4: Drag from sidebar — agregar nodos (~1h) ✅
 
-- [ ] Crear `builder-sidebar.tsx` — migrar `BuilderSidebar` del demo:
-  - Header con logo "VK" + "Agent Builder" + status "Saved"
-  - Link "Back to agents" → `/chat`
-  - Search input con filtro en tiempo real + keyboard shortcut `/`
-  - Nodos agrupados por categoria (Triggers, LLM, Tools, Memory, Logic, Outputs)
-  - Footer con info del agente (nombre, version, count de nodos)
-- [ ] Crear `library-item.tsx` — item draggable de la biblioteca:
-  - Icon wrap coloreado por kind
-  - Nombre + descripcion
-  - Grip handle visible en hover
-  - `useDraggable` de @dnd-kit para iniciar drag
-- [ ] Implementar drop en canvas — `useDroppable` en el area del canvas
-- [ ] En `onDragEnd`: si el drag viene del sidebar, calcular posicion relativa al canvas (considerando zoom/pan) y dispatch `ADD_NODE`
-- [ ] Asignar ID unico a cada nodo nuevo (`crypto.randomUUID` con fallback)
+- [x] Crear `builder-sidebar.tsx` — biblioteca de nodos con busqueda, agrupados por categoria
+- [x] Items draggable con icon wrap coloreado por kind
+- [x] Implementar drop en canvas — `useDroppable` en el area del canvas
+- [x] En `onDragEnd`: calcular posicion relativa al canvas (considerando zoom/pan) y dispatch `ADD_NODE`
+- [x] Asignar ID unico a cada nodo nuevo
 
 **Archivos creados**: 2 componentes nuevos
 **Verificacion**: Arrastrar "Chat message" desde sidebar al canvas crea un nodo trigger. Buscar "SAP" filtra la biblioteca
 
 ---
 
-### Fase 5: Conexion de cables (wiring) (~1.5h)
+### Fase 5: Conexion de cables (wiring) (~1.5h) ✅
 
-- [ ] Crear `node-port.tsx` — componente de puerto clickeable:
-  - Puerto "out" (derecho): click inicia wire drawing
-  - Puerto "in" (izquierdo): click finaliza wire drawing
-  - Hover highlight con accent color
-  - Feedback visual: puerto se agranda y brilla cuando es target valido
-- [ ] Crear `wire-drawing.tsx` — cable temporal que sigue al mouse:
-  - Desde el puerto "out" clickeado hasta la posicion actual del cursor
-  - Curva Bezier identica al estilo de los cables existentes
-  - Se cancela con ESC o click en area vacia
-- [ ] Implementar validacion de conexiones:
-  - No permitir self-loops (from === to)
-  - No permitir cables duplicados (mismo from-to par)
-  - No permitir conectar out→out o in→in
-  - Output de un nodo puede tener multiples cables salientes
-  - Input de un nodo puede tener multiples cables entrantes
-- [ ] Dispatch `ADD_WIRE` al completar la conexion
-- [ ] Implementar delete wire: click en cable → seleccionar → Delete/Backspace para eliminar
-- [ ] Crear `wire-utils.ts` — funciones para calculo de Bezier y hit testing de cables
+> **Refactored**: Puertos IN/OUT reemplazados por sistema de 4 puertos (top/right/bottom/left) estilo Lucidchart. Cualquier puerto puede ser origen o destino.
+
+- [x] Crear `port.tsx` — componente `Port` con conexion en 4 lados:
+  - Click inicia wire drawing desde cualquier puerto
+  - Click en puerto de otro nodo completa la conexion
+  - Hover highlight con accent color, pulse animation en targets durante wiring
+  - `onPointerDown` stopPropagation para evitar interferencia con @dnd-kit
+- [x] Crear `wire-drawing.tsx` — cable temporal con snap-to-port:
+  - Sigue al mouse en coordenadas canvas (zoom/pan corregidas)
+  - Snap: detecta puerto mas cercano dentro de ~5rem, preview se bloquea al puerto
+  - Indicador visual: anillo pulsante en puerto target + wire pasa de dashed a solid
+  - Click mientras snapped → confirma conexion. Click en vacio → cancela.
+  - ESC cancela
+- [x] Crear `arrow.tsx` — componente `Arrow` para wires confirmados:
+  - SVG group con hit area invisible (16px) + wire visible con arrowhead marker
+  - Estados: default (muted), hover (accent + glow), selected (full accent + glow), flow (animated dash)
+- [x] Validacion: no self-loops, no duplicados (incluyendo sides)
+- [x] Dispatch `ADD_WIRE` con `fromSide`/`toSide` al completar
+- [x] Delete wire: click en cable → seleccionar → Delete/Backspace
+- [x] Crear `wire-utils.ts`:
+  - `getPortPosition(node, side)` — posicion del puerto en coordenadas canvas
+  - `buildBezierPathDirectional(...)` — bezier para todas las 16 combinaciones de lados
+  - `inferTargetSide(...)` — determina lado target para preview dinamico
+  - `resolveWireSides(wire)` — defaults para backward compat (right→left)
+  - `wirePath(...)` — path completo con fan-out y drag offset
+  - `isPointNearWire(...)` — hit testing para seleccion por click
 
 **Archivos creados**: 3 nuevos (`node-port.tsx`, `wire-drawing.tsx`, `wire-utils.ts`)
 **Verificacion**: Click en puerto out → mover mouse → click en puerto in crea un cable. ESC cancela. Delete borra cable seleccionado
@@ -363,19 +357,19 @@ apps/web/
 
 ---
 
-### Fase 7: Canvas topbar y controles (~45 min)
+### Fase 7: Canvas topbar y controles (~45 min) — parcial
 
-- [ ] Crear `canvas-topbar.tsx` — barra superior del canvas:
+- [x] Crear `canvas-topbar.tsx` — barra superior del canvas:
   - Breadcrumbs: "Agents / [icon] Agent Name [badge: v0.1 · draft]"
   - Botones ghost: Versions, Share (deshabilitados en MVP, con tooltip "Proximamente")
   - Theme toggle (dark/light) — reusar logica de `useChat().theme`
   - "Test run" button (mock: muestra banner por 3.5s)
   - "Publish" button (accent color, por ahora guarda + marca status "published")
-- [ ] Crear `canvas-controls.tsx` — controles flotantes bottom-left:
+- [x] Crear `canvas-controls.tsx` — controles flotantes bottom-left:
   - Zoom in (+), zoom percentage, zoom out (-), fit-to-screen
   - Contenedor con bg-elev, border, border-radius, shadow (como demo)
   - Conectar a zoom state del builder
-- [ ] Crear `minimap.tsx` — vista miniatura bottom-right:
+- [x] Crear `minimap.tsx` — vista miniatura bottom-right:
   - Nodos como rectanguitos proporcionales
   - Nodo seleccionado highlighted con accent
   - Viewport indicator (rectangulo con border accent)
@@ -390,20 +384,17 @@ apps/web/
 
 ---
 
-### Fase 8: Seleccion, eliminacion y atajos de teclado (~45 min)
+### Fase 8: Seleccion, eliminacion y atajos de teclado (~45 min) ✅
 
-- [ ] Implementar seleccion de nodo: click selecciona, click en canvas vacio deselecciona
+- [x] Implementar seleccion de nodo: click selecciona, click en canvas vacio deselecciona
 - [ ] Implementar multi-seleccion: Shift+click agrega a seleccion, Ctrl+A selecciona todos
-- [ ] Implementar eliminacion: Delete/Backspace elimina nodo(s) seleccionado(s) + sus cables
-- [ ] Implementar atajos de teclado:
+- [x] Implementar eliminacion: Delete/Backspace elimina nodo(s) seleccionado(s) + sus cables
+- [x] Implementar atajos de teclado:
   - `Ctrl+Z` → undo
   - `Ctrl+Shift+Z` / `Ctrl+Y` → redo
   - `Delete` / `Backspace` → eliminar seleccion
-  - `Ctrl+A` → seleccionar todos los nodos
   - `Ctrl+D` → duplicar nodo seleccionado
   - `Escape` → deseleccionar / cancelar wire drawing
-  - `/` → focus en search de biblioteca
-  - `Ctrl+S` → guardar (prevenir default del browser + force save)
 - [ ] Agregar confirmacion para eliminar nodos que tienen cables conectados
 
 **Archivos modificados**: `canvas.tsx`, `builder-context.tsx`, `builder-reducer.ts`

@@ -14,50 +14,117 @@
   background-color: var(--background);
 }
 
-/* SVG wire layer */
+/* ── SVG wire layer ── */
 .wire-layer {
   position: absolute;
   inset: 0;
   pointer-events: none;
   overflow: visible;
 }
-.wire-path {
+
+/* Arrow marker fills */
+.wire-arrow-fill {
+  fill: var(--dm-accent);
+  opacity: 0.5;
+}
+.wire-arrow-fill-accent {
+  fill: var(--dm-accent);
+  opacity: 0.9;
+}
+
+/* Invisible hit area for easy clicking */
+.wire-hit-area {
   fill: none;
-  stroke: oklch(from var(--dm-accent) l c h / 0.55);
-  stroke-width: 1.8;
+  stroke: transparent;
+  stroke-width: 16;
   pointer-events: stroke;
   cursor: pointer;
 }
-.wire-path:hover {
-  stroke-width: 3;
-  stroke: var(--dm-accent);
+
+/* ── Default wire ── */
+.wire-path {
+  fill: none;
+  stroke: oklch(from var(--dm-accent) l c h / 0.4);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  marker-end: url(#wire-arrow);
+  pointer-events: stroke;
+  cursor: pointer;
+  transition: stroke 0.2s ease, stroke-width 0.2s ease, filter 0.2s ease;
 }
+
+/* Hover — group-level so the invisible hit area triggers it */
+.wire-group:hover .wire-path {
+  stroke: oklch(from var(--dm-accent) l c h / 0.75);
+  stroke-width: 2.2;
+  marker-end: url(#wire-arrow-accent);
+  filter: drop-shadow(0 0 3px oklch(from var(--dm-accent) l c h / 0.25));
+}
+
+/* Selected */
 .wire-path.selected {
   stroke: var(--dm-accent);
-  stroke-width: 2.5;
+  stroke-width: 2.2;
+  marker-end: url(#wire-arrow-accent);
+  filter: drop-shadow(0 0 5px oklch(from var(--dm-accent) l c h / 0.35));
 }
+
+/* ── Flow wire (animated data flow) ── */
 .wire-path-flow {
   fill: none;
   stroke: var(--dm-accent);
-  stroke-width: 2.5;
+  stroke-width: 2;
+  stroke-linecap: round;
   stroke-dasharray: 6 4;
+  marker-end: url(#wire-arrow-accent);
   animation: wire-dash 0.7s linear infinite;
-  opacity: 0.85;
+  opacity: 0.8;
   pointer-events: stroke;
   cursor: pointer;
+  transition: stroke-width 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
 }
-.wire-path-flow:hover {
-  stroke-width: 3.5;
+.wire-group:hover .wire-path-flow {
+  stroke-width: 2.8;
   opacity: 1;
+  filter: drop-shadow(0 0 4px oklch(from var(--dm-accent) l c h / 0.3));
 }
+.wire-path-flow.selected {
+  stroke-width: 2.6;
+  opacity: 1;
+  filter: drop-shadow(0 0 6px oklch(from var(--dm-accent) l c h / 0.4));
+}
+
+/* ── Temporary wire (during creation) ── */
 .wire-drawing-path {
   fill: none;
   stroke: var(--dm-accent);
   stroke-width: 2;
-  stroke-dasharray: 4 4;
-  opacity: 0.6;
+  stroke-linecap: round;
+  stroke-dasharray: 5 5;
+  opacity: 0.55;
   pointer-events: none;
+  animation: wire-dash 0.5s linear infinite;
 }
+.wire-drawing-path.snapped {
+  stroke-dasharray: none;
+  opacity: 0.8;
+  stroke-width: 2.2;
+  filter: drop-shadow(0 0 3px oklch(from var(--dm-accent) l c h / 0.3));
+}
+
+/* Snap indicator — ring around target port */
+.wire-snap-indicator {
+  fill: oklch(from var(--dm-accent) l c h / 0.15);
+  stroke: var(--dm-accent);
+  stroke-width: 1.5;
+  pointer-events: none;
+  animation: snap-pulse 0.8s ease-in-out infinite;
+}
+@keyframes snap-pulse {
+  0%, 100% { r: 8; opacity: 1; }
+  50% { r: 11; opacity: 0.6; }
+}
+
 @keyframes wire-dash {
   to { stroke-dashoffset: -10; }
 }
@@ -174,34 +241,65 @@
   transform: translateX(12px);
 }
 
-/* Port styling */
+/* Port styling — hidden by default, visible on hover or during wiring */
 .node-port {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: var(--bg-elev);
   border: 1.5px solid var(--border-strong);
-  top: 50%;
-  transform: translateY(-50%);
   z-index: 2;
   cursor: crosshair;
-  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  opacity: 0;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s, opacity 0.15s;
+}
+[data-id]:hover .node-port {
+  opacity: 1;
+}
+.node-port.target-highlight {
+  opacity: 1;
+  background: var(--dm-accent);
+  border-color: var(--dm-accent);
+  animation: port-pulse 1s ease-in-out infinite;
 }
 .node-port:hover {
   background: var(--dm-accent);
   border-color: var(--dm-accent);
-  transform: translateY(-50%) scale(1.3);
 }
-.node-port.active {
-  background: var(--dm-accent);
-  border-color: var(--dm-accent);
+
+/* Position per side — offsets place port center on the node border-box edge */
+.node-port.top {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
 }
-.node-port.in {
-  left: -6px;
-}
-.node-port.out {
+.node-port.top:hover { transform: translateX(-50%) scale(1.25); }
+
+.node-port.right {
   right: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.node-port.right:hover { transform: translateY(-50%) scale(1.25); }
+
+.node-port.bottom {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.node-port.bottom:hover { transform: translateX(-50%) scale(1.25); }
+
+.node-port.left {
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.node-port.left:hover { transform: translateY(-50%) scale(1.25); }
+
+@keyframes port-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 oklch(from var(--dm-accent) l c h / 0.5); }
+  50% { box-shadow: 0 0 0 5px oklch(from var(--dm-accent) l c h / 0); }
 }
 
 /* Run banner animation */

@@ -1,7 +1,9 @@
-import type { BuilderNode, Wire, NodeRow } from "./builder-types";
+import type { BuilderNode, PortSide, Wire, NodeRow } from "./builder-types";
 import { KIND_LABELS } from "./builder-types";
 import type { NodeTemplate } from "./builder-types";
 import { generateWireId } from "./wire-utils";
+
+export type WiringSource = { nodeId: string; side: PortSide } | null;
 
 export type BuilderState = {
   nodes: BuilderNode[];
@@ -11,11 +13,9 @@ export type BuilderState = {
   zoom: number;
   panX: number;
   panY: number;
-  // Undo / redo stacks store snapshots of { nodes, wires }
   past: Array<{ nodes: BuilderNode[]; wires: Wire[] }>;
   future: Array<{ nodes: BuilderNode[]; wires: Wire[] }>;
-  // Wire-drawing mode
-  wiringFrom: string | null;
+  wiringFrom: WiringSource;
   dirty: boolean;
 };
 
@@ -29,11 +29,11 @@ export type BuilderAction =
   | { type: "DUPLICATE_NODE"; id: string }
   | { type: "UPDATE_NODE_CONFIG"; id: string; config: Record<string, unknown> }
   | { type: "UPDATE_NODE_ROWS"; id: string; rows: NodeRow[] }
-  | { type: "ADD_WIRE"; from: string; to: string; flow?: boolean }
+  | { type: "ADD_WIRE"; from: string; to: string; fromSide?: PortSide; toSide?: PortSide; flow?: boolean }
   | { type: "DELETE_WIRE"; id: string }
-  | { type: "START_WIRING"; fromNodeId: string }
+  | { type: "START_WIRING"; fromNodeId: string; fromSide: PortSide }
   | { type: "CANCEL_WIRING" }
-  | { type: "COMPLETE_WIRING"; toNodeId: string }
+  | { type: "COMPLETE_WIRING"; toNodeId: string; toSide: PortSide }
   | { type: "SET_ZOOM"; zoom: number }
   | { type: "SET_PAN"; x: number; y: number }
   | { type: "SELECT_ALL" }
@@ -178,14 +178,21 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
     }
 
     case "ADD_WIRE": {
-      // Validate
       if (action.from === action.to) return state;
-      if (state.wires.some((w) => w.from === action.from && w.to === action.to)) return state;
+      // Duplicate check includes sides
+      const fromSide = action.fromSide ?? "right";
+      const toSide = action.toSide ?? "left";
+      if (state.wires.some((w) =>
+        w.from === action.from && w.to === action.to &&
+        (w.fromSide ?? "right") === fromSide && (w.toSide ?? "left") === toSide
+      )) return state;
       const s = pushHistory(state);
       const wire: Wire = {
         id: generateWireId(),
         from: action.from,
         to: action.to,
+        fromSide: action.fromSide,
+        toSide: action.toSide,
         flow: action.flow,
       };
       return { ...s, wires: [...s.wires, wire] };
@@ -197,23 +204,30 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
     }
 
     case "START_WIRING":
-      return { ...state, wiringFrom: action.fromNodeId };
+      return { ...state, wiringFrom: { nodeId: action.fromNodeId, side: action.fromSide } };
 
     case "CANCEL_WIRING":
       return { ...state, wiringFrom: null };
 
     case "COMPLETE_WIRING": {
-      if (!state.wiringFrom || state.wiringFrom === action.toNodeId) {
+      if (!state.wiringFrom || state.wiringFrom.nodeId === action.toNodeId) {
         return { ...state, wiringFrom: null };
       }
-      if (state.wires.some((w) => w.from === state.wiringFrom && w.to === action.toNodeId)) {
-        return { ...state, wiringFrom: null };
-      }
+      // Duplicate check with sides
+      const isDup = state.wires.some((w) =>
+        w.from === state.wiringFrom!.nodeId && w.to === action.toNodeId &&
+        (w.fromSide ?? "right") === state.wiringFrom!.side &&
+        (w.toSide ?? "left") === action.toSide
+      );
+      if (isDup) return { ...state, wiringFrom: null };
+
       const s = pushHistory(state);
       const wire: Wire = {
         id: generateWireId(),
-        from: s.wiringFrom!,
+        from: s.wiringFrom!.nodeId,
         to: action.toNodeId,
+        fromSide: s.wiringFrom!.side,
+        toSide: action.toSide,
       };
       return { ...s, wires: [...s.wires, wire], wiringFrom: null };
     }

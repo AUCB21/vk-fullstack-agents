@@ -1,7 +1,7 @@
 # Handoff — VK Agents (SAP B1 AI Platform)
 
-**Date**: 2026-05-08
-**State**: Initial WIP — Phases 0-2 substantially complete
+**Date**: 2026-05-13
+**State**: Phases 0-2 complete, Agent Builder in progress
 
 ## What exists and works
 
@@ -35,13 +35,27 @@
 - **.env.example** — all config vars documented
 - **.gitignore** — standard ignores
 
+### Agent Builder (apps/web — /builder route)
+- **Visual node editor** — drag-and-drop canvas for building agents without code
+- **4-port Lucidchart-style connections** — every node has ports on top/right/bottom/left, any port can be source or target
+- **Port component** (`components/builder/port.tsx`) — click to start/complete wiring
+- **Arrow component** (`components/builder/arrow.tsx`) — SVG bezier with arrowhead markers, hover/selected/flow states
+- **Snap-to-port wiring** — preview wire snaps to nearest port within ~5rem, click to confirm connection
+- **Directional bezier paths** — control points extend outward from port face, works for all 16 side combinations
+- **Fan-out** — multiple wires on same port arrive from different angles
+- **Live wire updates** during node drag
+- **Performance** — ref-based pan/zoom (zero re-renders during interaction), GPU compositing, React.memo
+- **Canvas features** — undo/redo (50 steps), keyboard shortcuts, minimap, zoom controls, inspector
+- **Persistence** — auto-save to localStorage (debounced 2s)
+- TypeScript builds clean (0 errors)
+
 ## What does NOT work yet
 
 - **SAP SL queries** — SAP access not yet available. Client code is written but untested.
 - **Docker compose** — not tested end-to-end
 - **Auth flow** (Phase 3) — login page, session management, cookie flow. Not started.
 - **Additional agents** (Phase 4) — sales + purchasing agents. Not started.
-- **Mobile responsive sidebar** — not implemented
+- **Agent Builder** — inspector runs tab, run banner, agent listing page, mobile layout, runtime integration
 
 ## How to run
 
@@ -80,10 +94,20 @@ DEV_MODE=true
 | Chat router | services/agents/app/routers/chat.py | POST /chat SSE endpoint |
 | SAP client | services/agents/app/sap/client.py | Async SAP SL REST client |
 | Config | services/agents/app/config.py | Pydantic Settings from .env |
+| Builder types | apps/web/lib/builder/builder-types.ts | PortSide, Wire, BuilderNode, AgentConfig |
+| Builder state | apps/web/lib/builder/builder-reducer.ts | Reducer with undo/redo, side-aware wiring |
+| Builder context | apps/web/lib/builder/builder-context.tsx | BuilderProvider + useBuilder hook |
+| Wire math | apps/web/lib/builder/wire-utils.ts | Bezier paths, port positions, hit testing |
+| Port component | apps/web/components/builder/port.tsx | 4-side connection points |
+| Arrow component | apps/web/components/builder/arrow.tsx | SVG wire with hit area + arrowhead |
+| Wire preview | apps/web/components/builder/wire-drawing.tsx | Live wire with snap-to-port |
+| Canvas | apps/web/components/builder/canvas.tsx | DnD, pan/zoom, keyboard shortcuts |
 
 ## Next steps (in order)
 
-1. **Test with real SAP SL** when access arrives — verify client, session, queries
-2. **Phase 3 — Auth flow** — login page, cookie-based sessions
-3. **Phase 4 — More agents** — sales + purchasing
-4. **Mobile responsive sidebar**
+1. **Agent Builder polish** — inspector runs tab, run banner, agent listing page
+2. **Test with real SAP SL** when access arrives — verify client, session, queries
+3. **Phase 3 — Auth flow** — login page, cookie-based sessions
+4. **Phase 4 — More agents** — sales + purchasing
+5. **Agent Builder mobile** — responsive layout, touch gestures
+6. **Agent Builder → runtime integration** — connect visual editor to agent execution

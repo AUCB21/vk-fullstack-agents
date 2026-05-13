@@ -1,11 +1,12 @@
 "use client";
 
+import { memo } from "react";
 import { useBuilder } from "@/lib/builder/builder-context";
 
 const MAP_W = 160;
 const MAP_H = 100;
 
-export function Minimap() {
+export const Minimap = memo(function Minimap() {
   const { state } = useBuilder();
   const { nodes, selectedNodeId } = state;
 
@@ -26,8 +27,7 @@ export function Minimap() {
           key={n.id}
           className="absolute rounded-sm"
           style={{
-            left: ((n.x - minX + 40) / totalW) * MAP_W,
-            top: ((n.y - minY + 40) / totalH) * MAP_H,
+            transform: `translate3d(${((n.x - minX + 40) / totalW) * MAP_W}px, ${((n.y - minY + 40) / totalH) * MAP_H}px, 0)`,
             width: (240 / totalW) * MAP_W,
             height: 14,
             background: n.id === selectedNodeId ? "var(--dm-accent)" : "var(--text-subtle)",
@@ -48,4 +48,4 @@ export function Minimap() {
       />
     </div>
   );
-}
+});

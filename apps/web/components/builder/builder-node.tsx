@@ -1,12 +1,14 @@
 "use client";
 
+import { memo } from "react";
 import { cn } from "@/lib/utils";
-import type { BuilderNode as BuilderNodeType } from "@/lib/builder/builder-types";
+import type { BuilderNode as BuilderNodeType, PortSide } from "@/lib/builder/builder-types";
 import type { DraggableSyntheticListeners } from "@dnd-kit/core";
 import { NodeIcon } from "./node-icon";
+import { Port } from "./port";
 import { useBuilder } from "@/lib/builder/builder-context";
 
-export function BuilderNode({
+export const BuilderNode = memo(function BuilderNode({
   node,
   style,
   dragListeners,
@@ -19,27 +21,21 @@ export function BuilderNode({
   dragAttributes?: React.HTMLAttributes<HTMLElement>;
   isDragging?: boolean;
 }) {
-  const { state, selectNode, startWiring, completeWiring } = useBuilder();
+  const { state, selectNode } = useBuilder();
   const isSelected = state.selectedNodeId === node.id;
-  const isWiring = state.wiringFrom !== null;
-  const isWiringSource = state.wiringFrom === node.id;
 
   return (
     <div
       data-kind={node.kind}
       data-id={node.id}
       className={cn(
-        "absolute w-[240px] rounded-[10px] border bg-[var(--bg-elev)] cursor-grab transition-[border-color,box-shadow] duration-150",
+        "relative w-[240px] rounded-[10px] border bg-[var(--bg-elev)] cursor-grab transition-[border-color,box-shadow] duration-150",
         isSelected
           ? "border-[oklch(from_var(--dm-accent)_l_c_h_/_0.7)] shadow-[0_0_0_3px_var(--dm-accent-ring),var(--shadow)]"
           : "border-[var(--border)] shadow-[var(--shadow)] hover:border-[var(--border-strong)]",
         isDragging && "opacity-50 cursor-grabbing",
       )}
-      style={{
-        left: node.x,
-        top: node.y,
-        ...style,
-      }}
+      style={style}
       onClick={(e) => {
         e.stopPropagation();
         selectNode(node.id);
@@ -47,32 +43,10 @@ export function BuilderNode({
       {...dragListeners}
       {...dragAttributes}
     >
-      {/* Port IN */}
-      <span
-        className={cn("node-port in", isWiring && !isWiringSource && "active")}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (isWiring) {
-            completeWiring(node.id);
-          }
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-      />
-
-      {/* Port OUT */}
-      <span
-        className={cn("node-port out", node.status === "ok" && "active")}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (isWiring) {
-            // Clicking out port while wiring — cancel and start new
-            completeWiring(node.id);
-          } else {
-            startWiring(node.id);
-          }
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-      />
+      {/* 4-side ports */}
+      {(["top", "right", "bottom", "left"] as PortSide[]).map((side) => (
+        <Port key={side} nodeId={node.id} side={side} />
+      ))}
 
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-[var(--border)] px-[11px] py-[9px] text-[12.5px] font-medium text-[var(--foreground)]">
@@ -124,4 +98,4 @@ export function BuilderNode({
       </div>
     </div>
   );
-}
+});

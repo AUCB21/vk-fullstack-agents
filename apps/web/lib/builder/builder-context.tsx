@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { AgentConfig, BuilderNode, NodeRow, Wire } from "./builder-types";
+import type { AgentConfig, BuilderNode, NodeRow, PortSide, Wire } from "./builder-types";
 import type { NodeTemplate } from "./builder-types";
 import {
   builderReducer,
@@ -39,9 +39,9 @@ type BuilderContextValue = {
   duplicateNode: (id: string) => void;
   updateNodeConfig: (id: string, config: Record<string, unknown>) => void;
   updateNodeRows: (id: string, rows: NodeRow[]) => void;
-  startWiring: (fromNodeId: string) => void;
+  startWiring: (fromNodeId: string, fromSide: PortSide) => void;
   cancelWiring: () => void;
-  completeWiring: (toNodeId: string) => void;
+  completeWiring: (toNodeId: string, toSide: PortSide) => void;
   undo: () => void;
   redo: () => void;
 
@@ -134,9 +134,9 @@ export function BuilderProvider({
   const duplicateNode = useCallback((id: string) => dispatch({ type: "DUPLICATE_NODE", id }), []);
   const updateNodeConfig = useCallback((id: string, config: Record<string, unknown>) => dispatch({ type: "UPDATE_NODE_CONFIG", id, config }), []);
   const updateNodeRows = useCallback((id: string, rows: NodeRow[]) => dispatch({ type: "UPDATE_NODE_ROWS", id, rows }), []);
-  const startWiring = useCallback((fromNodeId: string) => dispatch({ type: "START_WIRING", fromNodeId }), []);
+  const startWiring = useCallback((fromNodeId: string, fromSide: PortSide) => dispatch({ type: "START_WIRING", fromNodeId, fromSide }), []);
   const cancelWiring = useCallback(() => dispatch({ type: "CANCEL_WIRING" }), []);
-  const completeWiring = useCallback((toNodeId: string) => dispatch({ type: "COMPLETE_WIRING", toNodeId }), []);
+  const completeWiring = useCallback((toNodeId: string, toSide: PortSide) => dispatch({ type: "COMPLETE_WIRING", toNodeId, toSide }), []);
   const undo = useCallback(() => dispatch({ type: "UNDO" }), []);
   const redo = useCallback(() => dispatch({ type: "REDO" }), []);
 

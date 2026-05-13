@@ -1,15 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useBuilder } from "@/lib/builder/builder-context";
-import { getNodeCenter, buildBezierPath } from "@/lib/builder/wire-utils";
+import {
+  getPortPosition,
+  buildBezierPathDirectional,
+  inferTargetSide,
+} from "@/lib/builder/wire-utils";
+import type { PortSide } from "@/lib/builder/builder-types";
+
+const SNAP_RADIUS = 80; // ~5rem in canvas-space
+const SIDES: PortSide[] = ["top", "right", "bottom", "left"];
+
+type SnapTarget = { nodeId: string; side: PortSide; x: number; y: number };
 
 export function WireDrawing() {
-  const { state, cancelWiring } = useBuilder();
+  const { state, cancelWiring, completeWiring } = useBuilder();
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const snapRef = useRef<SnapTarget | null>(null);
 
   const sourceNode = state.wiringFrom
-    ? state.nodes.find((n) => n.id === state.wiringFrom)
+    ? state.nodes.find((n) => n.id === state.wiringFrom!.nodeId)
     : null;
 
   useEffect(() => {
@@ -31,15 +42,16 @@ export function WireDrawing() {
     };
 
     const onClick = () => {
-      // Click on empty canvas cancels wiring
-      // (Clicks on ports are handled by the port components and stop propagation)
-      cancelWiring();
+      if (snapRef.current) {
+        completeWiring(snapRef.current.nodeId, snapRef.current.side);
+      } else {
+        cancelWiring();
+      }
     };
 
     window.addEventListener("mousemove", onMove);
     window.addEventListener("keydown", onKey);
 
-    // Delay adding click listener to avoid the click that started wiring from canceling it
     const timer = setTimeout(() => {
       const canvas = document.getElementById("builder-canvas");
       canvas?.addEventListener("click", onClick);
@@ -52,16 +64,40 @@ export function WireDrawing() {
       const canvas = document.getElementById("builder-canvas");
       canvas?.removeEventListener("click", onClick);
     };
-  }, [state.wiringFrom, state.zoom, state.panX, state.panY, cancelWiring]);
+  }, [state.wiringFrom, state.zoom, state.panX, state.panY, cancelWiring, completeWiring]);
 
   if (!sourceNode || !state.wiringFrom) return null;
 
-  const src = getNodeCenter(sourceNode);
-  const d = buildBezierPath(src.outX, src.outY, mouse.x, mouse.y);
+  // Find nearest port within snap radius
+  let snap: SnapTarget | null = null;
+  let bestDist = SNAP_RADIUS;
+
+  for (const node of state.nodes) {
+    if (node.id === state.wiringFrom.nodeId) continue;
+    for (const side of SIDES) {
+      const pos = getPortPosition(node, side);
+      const dist = Math.sqrt((mouse.x - pos.x) ** 2 + (mouse.y - pos.y) ** 2);
+      if (dist < bestDist) {
+        bestDist = dist;
+        snap = { nodeId: node.id, side, x: pos.x, y: pos.y };
+      }
+    }
+  }
+
+  snapRef.current = snap;
+
+  const src = getPortPosition(sourceNode, state.wiringFrom.side);
+  const endX = snap ? snap.x : mouse.x;
+  const endY = snap ? snap.y : mouse.y;
+  const endSide = snap ? snap.side : inferTargetSide(src.x, src.y, mouse.x, mouse.y);
+  const d = buildBezierPathDirectional(src.x, src.y, state.wiringFrom.side, endX, endY, endSide);
 
   return (
     <svg className="wire-layer" style={{ zIndex: 10 }}>
-      <path d={d} className="wire-drawing-path" />
+      <path d={d} className={snap ? "wire-drawing-path snapped" : "wire-drawing-path"} />
+      {snap && (
+        <circle cx={snap.x} cy={snap.y} r="8" className="wire-snap-indicator" />
+      )}
     </svg>
   );
 }

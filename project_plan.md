@@ -387,6 +387,55 @@ These phases build on the mandatory foundation. They can be implemented in any o
 
 ---
 
+### Agent Builder — Visual Node Editor (In Progress)
+
+**Goal**: Drag-and-drop visual editor for building agents without code. Lucidchart-style canvas with nodes, wires, and 4-port connections.
+
+**Status**: Core canvas + wiring complete. See `agent_creator_plan.md` for full breakdown.
+
+**What works**:
+- [x] Canvas with grid background, pan (Alt+drag / middle-click), zoom (Ctrl+scroll)
+- [x] Node library sidebar with search, drag from sidebar to canvas
+- [x] Node components: header (icon + name + meta), body rows (key-value), footer (status dot)
+- [x] 4-port connections — every node has ports on top/right/bottom/left (Lucidchart-style)
+- [x] `Port` component — click any port to start wiring, click target port to connect
+- [x] `Arrow` component — SVG bezier curves with arrowhead markers, hover/selected/flow states
+- [x] Snap-to-port wiring — preview wire snaps to nearest port within ~5rem, click to confirm
+- [x] Directional bezier paths — control points extend outward from port face for all 16 side combinations
+- [x] Fan-out — multiple wires on same port arrive from different angles (control point spread)
+- [x] Live wire updates during node drag (drag offset passed to WireLayer)
+- [x] Wire hit testing — click-to-select with invisible 16px stroke hit area
+- [x] Performance: ref-based pan/zoom (zero React re-renders during interaction), GPU compositing via translate3d, React.memo on heavy components
+- [x] Undo/redo (50-step history), keyboard shortcuts (Delete, Ctrl+Z/Y, Ctrl+D, Escape)
+- [x] Minimap with viewport indicator
+- [x] Canvas controls (zoom in/out/fit/percentage)
+- [x] Inspector panel with config/prompt tabs
+- [x] Auto-save to localStorage (debounced 2s)
+- [x] Demo data with explicit side info for vertical connections
+
+**What's NOT done yet**:
+- [ ] Inspector runs tab (execution history)
+- [ ] Run banner (test run simulation)
+- [ ] Agent listing page (`/builder` without agentId)
+- [ ] Mobile responsive layout
+- [ ] Integration with agent runtime (Phase 1 = visual only)
+
+**Key files**:
+| File | Purpose |
+|------|---------|
+| `components/builder/port.tsx` | Port component — 4-side connection points |
+| `components/builder/arrow.tsx` | Arrow component — SVG wire with hit area |
+| `components/builder/wire-drawing.tsx` | Live wire preview with snap-to-port |
+| `components/builder/wire-layer.tsx` | All committed wires + arrowhead defs |
+| `components/builder/builder-node.tsx` | Node component with header/body/footer |
+| `components/builder/canvas.tsx` | Canvas with DnD, pan/zoom, keyboard shortcuts |
+| `lib/builder/wire-utils.ts` | Bezier math, port positions, hit testing |
+| `lib/builder/builder-reducer.ts` | State management with undo/redo |
+| `lib/builder/builder-context.tsx` | BuilderProvider + useBuilder hook |
+| `lib/builder/builder-types.ts` | PortSide, Wire (with fromSide/toSide), BuilderNode |
+
+---
+
 ### Future Ideas (Not Planned)
 
 These are noted for reference but have no phase or timeline:

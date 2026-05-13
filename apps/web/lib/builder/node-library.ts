@@ -208,10 +208,10 @@ export const INITIAL_NODES_DEMO = [
 ];
 
 export const INITIAL_WIRES_DEMO = [
-  { id: "w1", from: "n1", to: "n2" },
-  { id: "w2", from: "n2", to: "n3" },
-  { id: "w3", from: "n2", to: "n4" },
-  { id: "w4", from: "n3", to: "n4", flow: true },
-  { id: "w5", from: "n5", to: "n4" },
-  { id: "w6", from: "n4", to: "n6", flow: true },
+  { id: "w1", from: "n1", to: "n2", fromSide: "right" as const, toSide: "left" as const },
+  { id: "w2", from: "n2", to: "n3", fromSide: "right" as const, toSide: "left" as const },
+  { id: "w3", from: "n2", to: "n4", fromSide: "bottom" as const, toSide: "top" as const },
+  { id: "w4", from: "n3", to: "n4", fromSide: "bottom" as const, toSide: "top" as const, flow: true },
+  { id: "w5", from: "n5", to: "n4", fromSide: "right" as const, toSide: "left" as const },
+  { id: "w6", from: "n4", to: "n6", fromSide: "right" as const, toSide: "left" as const, flow: true },
 ];

@@ -22,10 +22,14 @@ export type BuilderNode = {
   config?: Record<string, unknown>;
 };
 
+export type PortSide = "top" | "right" | "bottom" | "left";
+
 export type Wire = {
   id: string;
   from: string;
   to: string;
+  fromSide?: PortSide;
+  toSide?: PortSide;
   flow?: boolean;
 };
 

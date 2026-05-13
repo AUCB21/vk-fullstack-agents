@@ -1,9 +1,10 @@
 "use client";
 
+import { memo } from "react";
 import { Plus, Minus, Maximize } from "lucide-react";
 import { useBuilder } from "@/lib/builder/builder-context";
 
-export function CanvasControls() {
+export const CanvasControls = memo(function CanvasControls() {
   const { state, dispatch } = useBuilder();
 
   return (
@@ -40,4 +41,4 @@ export function CanvasControls() {
       </button>
     </div>
   );
-}
+});
