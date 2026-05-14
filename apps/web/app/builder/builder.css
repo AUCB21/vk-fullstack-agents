@@ -307,3 +307,71 @@
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
+
+/* ── Node enter animation ── */
+@keyframes node-enter {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+[data-id] {
+  animation: node-enter 0.15s ease-out;
+}
+
+/* ── Cursor states ── */
+.builder-canvas { cursor: default; }
+.builder-canvas:active { cursor: default; }
+.builder-canvas.panning { cursor: grabbing; }
+
+/* ── Light theme builder overrides ── */
+.theme-light .builder-canvas {
+  background:
+    radial-gradient(circle at center, oklch(0.82 0.005 240) 1px, transparent 1.5px);
+  background-size: 22px 22px;
+  background-color: var(--background);
+}
+
+.theme-light .wire-path {
+  stroke: oklch(from var(--dm-accent) l c h / 0.35);
+}
+.theme-light .wire-group:hover .wire-path {
+  stroke: oklch(from var(--dm-accent) l c h / 0.65);
+}
+.theme-light .wire-path.selected {
+  stroke: var(--dm-accent);
+}
+.theme-light .wire-path-flow {
+  opacity: 0.7;
+}
+
+.theme-light .wire-arrow-fill {
+  opacity: 0.4;
+}
+
+.theme-light .node-port {
+  background: white;
+  border-color: oklch(0.78 0.006 240);
+}
+.theme-light .node-port:hover,
+.theme-light .node-port.target-highlight {
+  background: var(--dm-accent);
+  border-color: var(--dm-accent);
+}
+
+/* ── Toast animation ── */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(-0.5rem); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-in { animation: toast-in 0.2s ease-out; }
+
+/* ── Delete dialog backdrop ── */
+@keyframes fade-bg {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── Run target node glow ── */
+@keyframes run-glow {
+  0%, 100% { box-shadow: 0 0 8px oklch(from var(--dm-accent) l c h / 0.2); }
+  50% { box-shadow: 0 0 16px oklch(from var(--dm-accent) l c h / 0.4); }
+}

@@ -19,6 +19,7 @@ import { WireLayer } from "./wire-layer";
 import { WireDrawing } from "./wire-drawing";
 import { CanvasControls } from "./canvas-controls";
 import { Minimap } from "./minimap";
+import { RunBanner } from "./run-banner";
 import { NODE_LIBRARY } from "@/lib/builder/node-library";
 import type { BuilderNode as BuilderNodeType } from "@/lib/builder/builder-types";
 
@@ -57,12 +58,13 @@ function DraggableNode({ node, canvasZoom }: { node: BuilderNodeType; canvasZoom
 
 /* ── Canvas ── */
 export function Canvas() {
-  const { state, dispatch, selectNode, selectWire, addNode, moveNode, cancelWiring } = useBuilder();
+  const { state, dispatch, selectNode, selectWire, addNode, moveNode, cancelWiring, toggleSelectNode } = useBuilder();
   const canvasRef = useRef<HTMLDivElement>(null);
   const transformRef = useRef<HTMLDivElement>(null);
 
   /* ─── Live drag offset for real-time wire updates ─── */
   const [dragOffset, setDragOffset] = useState<DragOffset>(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   /* ─── Live pan/zoom refs — bypass React during interaction ─── */
   const livePan = useRef({ x: state.panX, y: state.panY });
@@ -157,6 +159,11 @@ export function Canvas() {
     selectWire(null);
   }, [selectNode, selectWire]);
 
+  const handleConfirmDelete = useCallback(() => {
+    setDeleteConfirm(false);
+    dispatch({ type: "DELETE_SELECTED" });
+  }, [dispatch]);
+
   /* ─── Pan: direct DOM manipulation, single dispatch on end ─── */
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
@@ -217,6 +224,17 @@ export function Canvas() {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Delete" || e.key === "Backspace") {
+        // Check if deleting nodes that have connected wires
+        const ids = state.selectedNodeIds.size > 0
+          ? state.selectedNodeIds
+          : state.selectedNodeId ? new Set([state.selectedNodeId]) : new Set<string>();
+        if (ids.size > 0) {
+          const hasWires = state.wires.some((w) => ids.has(w.from) || ids.has(w.to));
+          if (hasWires) {
+            setDeleteConfirm(true);
+            return;
+          }
+        }
         dispatch({ type: "DELETE_SELECTED" });
       } else if (e.key === "Escape") {
         cancelWiring();
@@ -233,6 +251,9 @@ export function Canvas() {
         if (state.selectedNodeId) {
           dispatch({ type: "DUPLICATE_NODE", id: state.selectedNodeId });
         }
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "a") {
+        e.preventDefault();
+        dispatch({ type: "SELECT_ALL" });
       }
     },
     [dispatch, cancelWiring, selectNode, selectWire, state.selectedNodeId],
@@ -284,6 +305,33 @@ export function Canvas() {
 
         <CanvasControls />
         <Minimap />
+        <RunBanner />
+
+        {/* Delete confirmation dialog */}
+        {deleteConfirm && (
+          <div className="absolute inset-0 z-20 flex items-center justify-center bg-[oklch(0_0_0_/_0.4)]">
+            <div className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-elev)] p-5 shadow-xl" style={{ maxWidth: "22rem" }}>
+              <h3 className="text-[14px] font-semibold text-[var(--foreground)]">Eliminar nodos conectados</h3>
+              <p className="text-[12.5px] leading-[1.5] text-[var(--text-muted)]">
+                Los nodos seleccionados tienen cables conectados. Al eliminarlos se eliminaran tambien los cables asociados.
+              </p>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  onClick={() => setDeleteConfirm(false)}
+                  className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-[12px] text-[var(--text-muted)] hover:bg-[var(--surface)]"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmDelete}
+                  className="rounded-lg bg-[oklch(0.55_0.2_25)] px-3 py-1.5 text-[12px] font-medium text-white hover:brightness-110"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </DndContext>
   );

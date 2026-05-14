@@ -21,8 +21,9 @@ export const BuilderNode = memo(function BuilderNode({
   dragAttributes?: React.HTMLAttributes<HTMLElement>;
   isDragging?: boolean;
 }) {
-  const { state, selectNode } = useBuilder();
-  const isSelected = state.selectedNodeId === node.id;
+  const { state, selectNode, toggleSelectNode } = useBuilder();
+  const isSelected = state.selectedNodeId === node.id || state.selectedNodeIds.has(node.id);
+  const isRunTarget = state.testRun?.status === "running" && state.testRun.currentNodeId === node.id;
 
   return (
     <div
@@ -33,12 +34,17 @@ export const BuilderNode = memo(function BuilderNode({
         isSelected
           ? "border-[oklch(from_var(--dm-accent)_l_c_h_/_0.7)] shadow-[0_0_0_3px_var(--dm-accent-ring),var(--shadow)]"
           : "border-[var(--border)] shadow-[var(--shadow)] hover:border-[var(--border-strong)]",
+        isRunTarget && "border-[var(--dm-accent)] shadow-[0_0_12px_oklch(from_var(--dm-accent)_l_c_h_/_0.3)]",
         isDragging && "opacity-50 cursor-grabbing",
       )}
       style={style}
       onClick={(e) => {
         e.stopPropagation();
-        selectNode(node.id);
+        if (e.shiftKey) {
+          toggleSelectNode(node.id);
+        } else {
+          selectNode(node.id);
+        }
       }}
       {...dragListeners}
       {...dragAttributes}

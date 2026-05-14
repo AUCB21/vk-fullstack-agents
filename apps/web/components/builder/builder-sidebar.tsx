@@ -94,49 +94,52 @@ export function BuilderSidebar() {
         </div>
       </div>
 
-      {/* Back link */}
-      <a
-        href="/chat"
-        className="flex items-center gap-2 px-4 py-2.5 text-[13px] text-[var(--text-muted)] no-underline hover:text-[var(--foreground)]"
-      >
-        <ChevronLeft className="size-3.5" style={{ transform: "rotate(0deg)" }} />
-        Volver a agentes
-      </a>
+      {/* Scrollable body — back link, search, node library */}
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
+        {/* Back link */}
+        <a
+          href="/chat"
+          className="flex shrink-0 items-center gap-2 px-4 py-2.5 text-[13px] text-[var(--text-muted)] no-underline hover:text-[var(--foreground)]"
+        >
+          <ChevronLeft className="size-3.5" style={{ transform: "rotate(0deg)" }} />
+          Volver a agentes
+        </a>
 
-      {/* Search */}
-      <div className="relative mx-[10px] mb-2">
-        <Search className="pointer-events-none absolute left-[9px] top-1/2 size-3 -translate-y-1/2 text-[var(--text-subtle)]" />
-        <input
-          ref={searchRef}
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar nodos..."
-          className="w-full rounded-[7px] border border-[var(--border)] bg-[var(--surface)] py-1.5 pl-7 pr-7 text-[12.5px] text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)] focus:border-[oklch(from_var(--dm-accent)_l_c_h_/_0.5)] focus:shadow-[0_0_0_3px_var(--dm-accent-ring)]"
-        />
-        <span className="pointer-events-none absolute right-[7px] top-1/2 -translate-y-1/2 rounded-[3px] border border-[var(--border)] px-1 font-mono text-[10px] text-[var(--text-subtle)]">
-          /
-        </span>
-      </div>
+        {/* Search */}
+        <div className="relative mx-[10px] mb-2 shrink-0">
+          <Search className="pointer-events-none absolute left-[9px] top-1/2 size-3 -translate-y-1/2 text-[var(--text-subtle)]" />
+          <input
+            ref={searchRef}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar nodos..."
+            className="w-full rounded-[7px] border border-[var(--border)] bg-[var(--surface)] py-1.5 pl-7 pr-7 text-[12.5px] text-[var(--foreground)] outline-none placeholder:text-[var(--text-subtle)] focus:border-[oklch(from_var(--dm-accent)_l_c_h_/_0.5)] focus:shadow-[0_0_0_3px_var(--dm-accent-ring)]"
+          />
+          <span className="pointer-events-none absolute right-[7px] top-1/2 -translate-y-1/2 rounded-[3px] border border-[var(--border)] px-1 font-mono text-[10px] text-[var(--text-subtle)]">
+            /
+          </span>
+        </div>
 
-      {/* Node library */}
-      <div className="flex-1 overflow-y-auto pb-3">
-        {KIND_GROUP_ORDER.map((kind) =>
-          grouped[kind] && grouped[kind].length > 0 ? (
-            <div key={kind}>
-              <div className="px-4 pb-1 pt-3.5 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--text-subtle)]">
-                {KIND_GROUP_LABELS[kind]}
+        {/* Node library */}
+        <div className="pb-3">
+          {KIND_GROUP_ORDER.map((kind) =>
+            grouped[kind] && grouped[kind].length > 0 ? (
+              <div key={kind}>
+                <div className="px-4 pb-1 pt-3.5 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--text-subtle)]">
+                  {KIND_GROUP_LABELS[kind]}
+                </div>
+                {grouped[kind].map((item) => (
+                  <LibraryItem key={item.id} item={item} />
+                ))}
               </div>
-              {grouped[kind].map((item) => (
-                <LibraryItem key={item.id} item={item} />
-              ))}
+            ) : null,
+          )}
+          {filtered.length === 0 && (
+            <div className="px-4 py-8 text-center text-[12px] text-[var(--text-subtle)]">
+              Sin resultados para &ldquo;{query}&rdquo;
             </div>
-          ) : null,
-        )}
-        {filtered.length === 0 && (
-          <div className="px-4 py-8 text-center text-[12px] text-[var(--text-subtle)]">
-            Sin resultados para &ldquo;{query}&rdquo;
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Footer */}

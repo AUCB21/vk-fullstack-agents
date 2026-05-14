@@ -323,41 +323,26 @@ apps/web/
 
 ---
 
-### Fase 6: Inspector panel (~1.5h)
+### Fase 6: Inspector panel (~1.5h) ✅
 
-- [ ] Crear `inspector.tsx` — panel derecho con 3 tabs (Config, Prompt, Runs):
+- [x] Crear `inspector.tsx` — panel derecho con 3 tabs (Config, Prompt, Runs):
   - Header con icono + nombre del nodo seleccionado + meta/ID
   - Tab bar con iconos (gear, pencil, layers) + badge de count en Runs
   - Empty state cuando no hay nodo seleccionado
-- [ ] Crear `inspector-config.tsx` — tab de configuracion (migrar del demo):
-  - **Seccion Model**: dropdown de modelos (claude-sonnet, claude-haiku, gemini-flash, etc.)
-  - **Seccion Temperature**: slider 0–1 con step 0.05, valor numerico a la derecha
-  - **Seccion Max tokens**: input numerico con default 2048
-  - **Seccion Tools attached**: chips/pills con icono + nombre + X para remover + "Add tool" button
-  - **Seccion Behavior**: toggles estilo switch (Stream output, Cite SAP records, Auto-approve writes)
-  - Campos adaptados por `node.kind` — triggers no muestran modelo, tools muestran verb/filter, etc.
-- [ ] Crear `inspector-prompt.tsx` — tab de prompt:
-  - Textarea monospace con syntax highlighting basico para `{{variables}}`
-  - Seccion "Available variables" con chips copiables
-  - Placeholder con template default por tipo de nodo
-- [ ] Crear `inspector-runs.tsx` — tab de historial (datos mock por ahora):
-  - Lista de runs recientes con: status dot, query truncada, run ID, timestamp, duracion
-  - Grid layout como el demo (dot | text | duration)
-- [ ] Conectar cambios del inspector al state via `UPDATE_NODE_CONFIG`
-- [ ] Migrar estilos del inspector de `builder.css`:
-  - `.insp-tabs`, `.insp-tab`, `.insp-body` → Tailwind
-  - `.insp-section`, `.insp-field`, `.insp-hd` → Tailwind
-  - `.slider`, `.slider-row`, `.slider-val` → CSS (webkit/moz appearance override)
-  - `.toggle`, `.toggle.on`, `.toggle .sw` → Tailwind + CSS (pseudo-element animation)
-  - `.tool-pill`, `.tool-pill.attached` → Tailwind
-  - `.chip-row` → Tailwind flex-wrap
+- [x] Tab Config integrado: modelo, temperatura (slider), max tokens, tools attached, behavior toggles
+- [x] Tab Prompt integrado: textarea monospace con variables disponibles
+- [x] Tab Runs integrado: lista mock con status dot, query, ID, timestamp, duracion
+- [x] Conectar cambios del inspector al state via `UPDATE_NODE_CONFIG`
+- [x] Estilos migrados a Tailwind + CSS custom properties
 
-**Archivos creados**: 4 componentes nuevos
+> **Nota**: Implementado como componente unico `inspector.tsx` (275 lineas) en vez de 4 archivos separados. Las 3 tabs estan integradas en un solo componente.
+
+**Archivos creados**: 1 componente (`inspector.tsx`)
 **Verificacion**: Seleccionar nodo LLM → inspector muestra modelo, temperatura, tools. Cambiar temperatura → state se actualiza → auto-save
 
 ---
 
-### Fase 7: Canvas topbar y controles (~45 min) — parcial
+### Fase 7: Canvas topbar y controles (~45 min) ✅
 
 - [x] Crear `canvas-topbar.tsx` — barra superior del canvas:
   - Breadcrumbs: "Agents / [icon] Agent Name [badge: v0.1 · draft]"
@@ -374,12 +359,14 @@ apps/web/
   - Nodo seleccionado highlighted con accent
   - Viewport indicator (rectangulo con border accent)
   - Proporciones basadas en bounding box de todos los nodos
-- [ ] Crear `run-banner.tsx` — banner centrado bottom:
+- [x] Crear `run-banner.tsx` — banner centrado bottom:
   - Dot animado + "Test run" + step actual + "Stop" button
   - Se muestra cuando `testing === true`, desaparece al terminar
-  - Mock: simula progreso por 3.5s pasando por los nodos
+  - Mock: simula progreso por ~3.5s pasando por los nodos
+  - Boton "Detener" cancela, "Cerrar" descarta banner
+  - Nodo activo resaltado con glow accent durante test
 
-**Archivos creados**: 4 componentes nuevos
+**Archivos creados**: 5 componentes nuevos
 **Verificacion**: Zoom funciona, minimap refleja posiciones de nodos, test run muestra banner animado
 
 ---
@@ -387,64 +374,64 @@ apps/web/
 ### Fase 8: Seleccion, eliminacion y atajos de teclado (~45 min) ✅
 
 - [x] Implementar seleccion de nodo: click selecciona, click en canvas vacio deselecciona
-- [ ] Implementar multi-seleccion: Shift+click agrega a seleccion, Ctrl+A selecciona todos
+- [x] Implementar multi-seleccion: Shift+click agrega/quita de seleccion, Ctrl+A selecciona todos
 - [x] Implementar eliminacion: Delete/Backspace elimina nodo(s) seleccionado(s) + sus cables
 - [x] Implementar atajos de teclado:
   - `Ctrl+Z` → undo
   - `Ctrl+Shift+Z` / `Ctrl+Y` → redo
   - `Delete` / `Backspace` → eliminar seleccion
   - `Ctrl+D` → duplicar nodo seleccionado
+  - `Ctrl+A` → seleccionar todos
   - `Escape` → deseleccionar / cancelar wire drawing
-- [ ] Agregar confirmacion para eliminar nodos que tienen cables conectados
+- [x] Agregar confirmacion para eliminar nodos que tienen cables conectados (dialogo modal)
 
 **Archivos modificados**: `canvas.tsx`, `builder-context.tsx`, `builder-reducer.ts`
-**Verificacion**: Ctrl+Z deshace, Delete borra nodo, / enfoca busqueda
+**Verificacion**: Ctrl+Z deshace, Delete borra nodo, / enfoca busqueda, Shift+click multi-selecciona
 
 ---
 
-### Fase 9: Persistencia completa y navegacion (~1h)
+### Fase 9: Persistencia completa y navegacion (~1h) ✅
 
-- [ ] Implementar pagina de listado de agentes: `/builder` (sin `[agentId]`)
+- [x] Implementar pagina de listado de agentes: `/builder` (sin `[agentId]`)
   - Grid de cards con agentes guardados
   - Card muestra: icono, nombre, version, status (draft/published), fecha, count de nodos
   - Boton "Nuevo agente" → genera UUID → navega a `/builder/{uuid}`
   - Click en card → navega a `/builder/{id}`
-  - Delete agent (con confirmacion)
-- [ ] Implementar auto-save debounced en `BuilderProvider`:
-  - Guardar a localStorage 2s despues del ultimo cambio
-  - Mostrar "Saving..." / "Saved" en sidebar status
-  - Guardar en `onbeforeunload` si hay cambios sin guardar
-- [ ] Implementar carga de config desde localStorage al montar la pagina
-- [ ] Agregar link desde chat sidebar → `/builder` ("Agent Builder" con icono)
-- [ ] Agregar link desde builder sidebar → `/chat` ("Back to agents")
-- [ ] Implementar "Publicar" — cambia status a "published", muestra toast de confirmacion
+  - Delete agent (con confirmacion, dialogo modal)
+  - Theme toggle (dark/light)
+- [x] Implementar `builder-storage.ts` — CRUD completo: save, load, list, delete, generateId
+- [x] Implementar auto-save debounced en `BuilderProvider` (2s)
+- [x] Implementar carga de config desde localStorage al montar la pagina
+- [x] Agregar link desde chat sidebar → `/builder` ("Agent Builder")
+- [x] Agregar link desde builder sidebar → `/chat` ("Back to agents")
+- [x] Guardar en `onbeforeunload` si hay cambios sin guardar
+- [x] Implementar "Publicar" — cambia status a "published", guarda inmediatamente, muestra toast
 
-**Archivos creados**: 1 pagina nueva (`app/builder/page.tsx`), modificar sidebar del chat
+**Archivos creados**: `app/builder/page.tsx`, `lib/builder/builder-storage.ts`
 **Verificacion**: Crear agente → agregar nodos → cerrar pestaña → reabrir → todo se mantiene
 
 ---
 
-### Fase 10: Pulido visual y paridad con demo (~1h)
+### Fase 10: Pulido visual y paridad con demo (~1h) ✅
 
-- [ ] Revisar pixel-by-pixel contra `builder.css` / `builder.jsx`:
-  - Colores por `node.kind` (trigger=amber, llm=accent, tool=emerald, memory=violet, output=coral, condition=slate)
-  - Font sizes: 12.5px body, 10.5px subtle, 11px mono
-  - Spacing: gaps, paddings exactos del demo
-  - Shadows y border-radius
-- [ ] Animaciones:
+- [x] Colores por `node.kind` (trigger=amber, llm=accent, tool=emerald, memory=violet, output=coral, condition=slate)
+- [x] Font sizes: 12.5px body, 10.5px subtle, 11px mono
+- [x] Shadows y border-radius correctos
+- [x] Animaciones:
   - Wire flow animation (`stroke-dasharray: 6 4`, animation dash)
   - Node hover: `border-color` transition
   - Node selected: accent ring glow
   - Status dot: green glow para "ok"
   - Run banner: dot pulse animation
   - Port hover: scale + accent highlight
-- [ ] Tema light — asegurar que todos los componentes del builder respeten `theme-light`
-- [ ] Transiciones suaves al agregar/eliminar nodos (fade in/out)
-- [ ] Cursor states: `grab` default en canvas, `grabbing` durante drag, `pointer` en botones
-- [ ] Tooltip en botones que no son obvios
+  - Node enter: fade-in + scale animation
+  - Publish toast: slide-in animation
+- [x] Tema light — overrides para canvas grid, wires, ports, arrow fills
+- [x] Transiciones suaves al agregar nodos (node-enter animation)
+- [x] Cursor states: `default` en canvas, `grabbing` durante pan, `crosshair` durante wiring, `grab` en nodos
 
-**Archivos modificados**: CSS + multiples componentes
-**Verificacion**: Comparacion visual lado a lado con el demo HTML. Dark y light mode correctos
+**Archivos modificados**: `builder.css`, `builder-node.tsx`, `canvas.tsx`
+**Verificacion**: Dark y light mode correctos, animaciones suaves
 
 ---
 

@@ -409,14 +409,20 @@ These phases build on the mandatory foundation. They can be implemented in any o
 - [x] Undo/redo (50-step history), keyboard shortcuts (Delete, Ctrl+Z/Y, Ctrl+D, Escape)
 - [x] Minimap with viewport indicator
 - [x] Canvas controls (zoom in/out/fit/percentage)
-- [x] Inspector panel with config/prompt tabs
-- [x] Auto-save to localStorage (debounced 2s)
+- [x] Inspector panel — 3 tabs: Config (model, temp, tokens, behavior), Prompt (template + variables), Runs (mock execution history)
+- [x] Auto-save to localStorage (debounced 2s) + onbeforeunload flush
 - [x] Demo data with explicit side info for vertical connections
+- [x] Run banner — mock test run stepping through nodes (~3.5s), animated dot, stop/dismiss
+- [x] Test run button in topbar (disabled while running), active node highlighted with glow
+- [x] Multi-selection — Shift+click to toggle, Ctrl+A selects all, batch delete
+- [x] Delete confirmation dialog for nodes with connected wires
+- [x] Publish flow — saves immediately, sets status to "published", toast notification
+- [x] Agent listing page (`/builder`) — grid with CRUD, delete confirmation, theme toggle
+- [x] Scrollable sidebar — entire body scrolls as one unit
+- [x] Light theme — builder-specific overrides for canvas grid, wires, ports
+- [x] Visual polish — node enter animation, toast animation, cursor states, run target glow
 
 **What's NOT done yet**:
-- [ ] Inspector runs tab (execution history)
-- [ ] Run banner (test run simulation)
-- [ ] Agent listing page (`/builder` without agentId)
 - [ ] Mobile responsive layout
 - [ ] Integration with agent runtime (Phase 1 = visual only)
 
@@ -430,9 +436,13 @@ These phases build on the mandatory foundation. They can be implemented in any o
 | `components/builder/builder-node.tsx` | Node component with header/body/footer |
 | `components/builder/canvas.tsx` | Canvas with DnD, pan/zoom, keyboard shortcuts |
 | `lib/builder/wire-utils.ts` | Bezier math, port positions, hit testing |
-| `lib/builder/builder-reducer.ts` | State management with undo/redo |
-| `lib/builder/builder-context.tsx` | BuilderProvider + useBuilder hook |
+| `lib/builder/builder-reducer.ts` | State management with undo/redo, multi-select, test run |
+| `lib/builder/builder-context.tsx` | BuilderProvider + useBuilder hook, publish, onbeforeunload |
 | `lib/builder/builder-types.ts` | PortSide, Wire (with fromSide/toSide), BuilderNode |
+| `lib/builder/builder-storage.ts` | localStorage CRUD for agent configs |
+| `components/builder/run-banner.tsx` | Mock test run banner with step progress |
+| `components/builder/inspector.tsx` | 3-tab panel: config, prompt, runs |
+| `app/builder/page.tsx` | Agent listing grid with CRUD + delete confirmation |
 
 ---
 

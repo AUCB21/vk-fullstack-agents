@@ -1,18 +1,27 @@
 "use client";
 
-import { Package, Layers, Share2, Sparkles, ArrowUp, Sun, Moon } from "lucide-react";
+import { Package, Layers, Share2, Sparkles, ArrowUp, Sun, Moon, Check } from "lucide-react";
 import { useBuilder } from "@/lib/builder/builder-context";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 
 export function CanvasTopbar() {
-  const { agentName, agentVersion, agentStatus } = useBuilder();
+  const { agentName, agentVersion, agentStatus, startTestRun, publish, state } = useBuilder();
   const [theme, setThemeLocal] = useState<"dark" | "light">("dark");
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem("vk-theme") as "dark" | "light" | null;
     if (saved) setThemeLocal(saved);
   }, []);
+
+  const handlePublish = () => {
+    publish();
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 2500);
+  };
+
+  const isRunning = state.testRun?.status === "running";
 
   function toggleTheme() {
     const next = theme === "dark" ? "light" : "dark";
@@ -24,7 +33,7 @@ export function CanvasTopbar() {
   }
 
   return (
-    <div className="flex h-[52px] shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--background)] px-[18px]">
+    <div className="relative flex h-[52px] shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--background)] px-[18px]">
       {/* Breadcrumbs */}
       <div className="flex items-center gap-2 text-[13px]">
         <a href="/chat" className="text-[var(--text-subtle)] no-underline hover:text-[var(--text-muted)]">
@@ -77,14 +86,30 @@ export function CanvasTopbar() {
         </div>
 
         <button
-          className="inline-flex items-center gap-1.5 rounded-[7px] border border-[var(--border)] bg-transparent px-2.5 py-[5px] text-[12px] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]"
+          onClick={startTestRun}
+          disabled={isRunning}
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-[7px] border border-[var(--border)] bg-transparent px-2.5 py-[5px] text-[12px] text-[var(--text-muted)] hover:border-[var(--border-strong)] hover:bg-[var(--surface)] hover:text-[var(--foreground)]",
+            isRunning && "opacity-50 cursor-not-allowed",
+          )}
         >
-          <Sparkles className="size-3" /> Test run
+          <Sparkles className="size-3" /> {isRunning ? "Ejecutando..." : "Test run"}
         </button>
-        <button className="inline-flex items-center gap-1.5 rounded-[7px] bg-[var(--dm-accent)] px-[11px] py-[6px] text-[12.5px] font-medium text-[var(--dm-accent-fg)] transition-[filter,transform] duration-150 hover:brightness-105 hover:-translate-y-px">
+        <button
+          onClick={handlePublish}
+          className="inline-flex items-center gap-1.5 rounded-[7px] bg-[var(--dm-accent)] px-[11px] py-[6px] text-[12.5px] font-medium text-[var(--dm-accent-fg)] transition-[filter,transform] duration-150 hover:brightness-105 hover:-translate-y-px"
+        >
           <ArrowUp className="size-3" /> Publish
         </button>
       </div>
+
+      {/* Publish toast */}
+      {showToast && (
+        <div className="absolute right-4 top-14 z-20 flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg-elev)] px-3.5 py-2 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+          <Check className="size-3.5 text-[var(--status-ok)]" />
+          <span className="text-[12.5px] text-[var(--foreground)]">Agente publicado</span>
+        </div>
+      )}
     </div>
   );
 }

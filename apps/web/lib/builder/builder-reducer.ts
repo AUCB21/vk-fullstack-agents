@@ -5,11 +5,20 @@ import { generateWireId } from "./wire-utils";
 
 export type WiringSource = { nodeId: string; side: PortSide } | null;
 
+export type TestRun = {
+  status: "running" | "done" | "error";
+  currentNodeId: string | null;
+  stepIndex: number;
+  totalSteps: number;
+  startedAt: number;
+};
+
 export type BuilderState = {
   nodes: BuilderNode[];
   wires: Wire[];
   selectedNodeId: string | null;
   selectedWireId: string | null;
+  selectedNodeIds: Set<string>;
   zoom: number;
   panX: number;
   panY: number;
@@ -17,6 +26,7 @@ export type BuilderState = {
   future: Array<{ nodes: BuilderNode[]; wires: Wire[] }>;
   wiringFrom: WiringSource;
   dirty: boolean;
+  testRun: TestRun | null;
 };
 
 export type BuilderAction =
@@ -37,6 +47,11 @@ export type BuilderAction =
   | { type: "SET_ZOOM"; zoom: number }
   | { type: "SET_PAN"; x: number; y: number }
   | { type: "SELECT_ALL" }
+  | { type: "TOGGLE_SELECT_NODE"; id: string }
+  | { type: "START_TEST_RUN"; nodeIds: string[] }
+  | { type: "TEST_RUN_STEP"; nodeId: string; stepIndex: number }
+  | { type: "END_TEST_RUN"; status: "done" | "error" }
+  | { type: "DISMISS_TEST_RUN" }
   | { type: "UNDO" }
   | { type: "REDO" }
   | { type: "MARK_CLEAN" };
@@ -61,6 +76,7 @@ export const initialBuilderState: BuilderState = {
   wires: [],
   selectedNodeId: null,
   selectedWireId: null,
+  selectedNodeIds: new Set(),
   zoom: 100,
   panX: 0,
   panY: 0,
@@ -68,6 +84,7 @@ export const initialBuilderState: BuilderState = {
   future: [],
   wiringFrom: null,
   dirty: false,
+  testRun: null,
 };
 
 export function builderReducer(state: BuilderState, action: BuilderAction): BuilderState {
@@ -79,9 +96,11 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
         wires: action.wires,
         selectedNodeId: null,
         selectedWireId: null,
+        selectedNodeIds: new Set(),
         past: [],
         future: [],
         dirty: false,
+        testRun: null,
       };
 
     case "ADD_NODE": {
@@ -112,33 +131,73 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
     }
 
     case "SELECT_NODE":
-      return { ...state, selectedNodeId: action.id, selectedWireId: action.id ? null : state.selectedWireId };
+      return {
+        ...state,
+        selectedNodeId: action.id,
+        selectedNodeIds: action.id ? new Set([action.id]) : new Set(),
+        selectedWireId: action.id ? null : state.selectedWireId,
+      };
 
     case "SELECT_WIRE":
-      return { ...state, selectedWireId: action.id, selectedNodeId: action.id ? null : state.selectedNodeId };
+      return { ...state, selectedWireId: action.id, selectedNodeId: action.id ? null : state.selectedNodeId, selectedNodeIds: new Set() };
 
     case "SELECT_ALL":
-      return { ...state, selectedNodeId: null, selectedWireId: null };
+      return {
+        ...state,
+        selectedNodeIds: new Set(state.nodes.map((n) => n.id)),
+        selectedNodeId: null,
+        selectedWireId: null,
+      };
+
+    case "TOGGLE_SELECT_NODE": {
+      const next = new Set(state.selectedNodeIds);
+      if (next.has(action.id)) {
+        next.delete(action.id);
+      } else {
+        next.add(action.id);
+      }
+      return {
+        ...state,
+        selectedNodeIds: next,
+        selectedNodeId: next.size === 1 ? [...next][0] : null,
+        selectedWireId: null,
+      };
+    }
 
     case "DELETE_SELECTED": {
-      if (!state.selectedNodeId && !state.selectedWireId) return state;
-      const s = pushHistory(state);
-      if (s.selectedWireId) {
+      // Multi-selection delete
+      if (state.selectedNodeIds.size > 0) {
+        const s = pushHistory(state);
+        const ids = s.selectedNodeIds;
+        return {
+          ...s,
+          nodes: s.nodes.filter((n) => !ids.has(n.id)),
+          wires: s.wires.filter((w) => !ids.has(w.from) && !ids.has(w.to)),
+          selectedNodeId: null,
+          selectedNodeIds: new Set(),
+        };
+      }
+      // Single wire delete
+      if (state.selectedWireId) {
+        const s = pushHistory(state);
         return {
           ...s,
           wires: s.wires.filter((w) => w.id !== s.selectedWireId),
           selectedWireId: null,
         };
       }
-      if (s.selectedNodeId) {
+      // Single node delete (legacy path)
+      if (state.selectedNodeId) {
+        const s = pushHistory(state);
         return {
           ...s,
           nodes: s.nodes.filter((n) => n.id !== s.selectedNodeId),
           wires: s.wires.filter((w) => w.from !== s.selectedNodeId && w.to !== s.selectedNodeId),
           selectedNodeId: null,
+          selectedNodeIds: new Set(),
         };
       }
-      return s;
+      return state;
     }
 
     case "DUPLICATE_NODE": {
@@ -237,6 +296,35 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
 
     case "SET_PAN":
       return { ...state, panX: action.x, panY: action.y };
+
+    case "START_TEST_RUN":
+      return {
+        ...state,
+        testRun: {
+          status: "running",
+          currentNodeId: action.nodeIds[0] ?? null,
+          stepIndex: 0,
+          totalSteps: action.nodeIds.length,
+          startedAt: Date.now(),
+        },
+      };
+
+    case "TEST_RUN_STEP":
+      if (!state.testRun) return state;
+      return {
+        ...state,
+        testRun: { ...state.testRun, currentNodeId: action.nodeId, stepIndex: action.stepIndex },
+      };
+
+    case "END_TEST_RUN":
+      if (!state.testRun) return state;
+      return {
+        ...state,
+        testRun: { ...state.testRun, status: action.status, currentNodeId: null },
+      };
+
+    case "DISMISS_TEST_RUN":
+      return { ...state, testRun: null };
 
     case "UNDO": {
       if (state.past.length === 0) return state;
