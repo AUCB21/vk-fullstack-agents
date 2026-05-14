@@ -31,7 +31,10 @@ export default function LoginPage() {
 
   function toggleTheme(t: "dark" | "light") {
     setTheme(t);
-    document.documentElement.classList.toggle("theme-light", t === "light");
+    const el = document.documentElement;
+    el.classList.add("theme-transitioning");
+    el.classList.toggle("theme-light", t === "light");
+    setTimeout(() => el.classList.remove("theme-transitioning"), 250);
   }
 
   async function handleSubmit(e: React.FormEvent) {

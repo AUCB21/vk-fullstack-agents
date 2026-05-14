@@ -134,6 +134,12 @@
 [data-accent="blue"]     { --accent-h: 230; --accent-c: 0.14; }
 [data-accent="slate"]    { --accent-h: 250; --accent-c: 0.08; }
 
+/* Theme transition — enabled briefly during dark/light switch via .theme-transitioning class.
+   Skips SVG paths and wire-layer internals to avoid layout thrash in builder canvas. */
+.theme-transitioning *:not(path):not(svg):not(circle):not(.wire-layer *) {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
 /* Light theme */
 .theme-light {
   --background: oklch(0.985 0.003 240);

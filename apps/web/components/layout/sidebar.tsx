@@ -212,9 +212,18 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: { onCl
             </span>
           </>
         )}
+        {!collapsed && (
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="ml-auto shrink-0 text-[var(--text-subtle)] transition-colors hover:text-[var(--text-muted)]"
+            title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+          >
+            {theme === "dark" ? <Sun className="size-[15px]" /> : <Moon className="size-[15px]" />}
+          </button>
+        )}
         <button
           onClick={onToggleCollapse}
-          className={cn("shrink-0 text-[var(--text-subtle)] hover:text-[var(--text-muted)] transition-all duration-300", collapsed ? "p-2" : "ml-auto")}
+          className={cn("shrink-0 text-[var(--text-subtle)] hover:text-[var(--text-muted)] transition-all duration-300", collapsed ? "p-2" : "")}
           title={collapsed ? "Expandir sidebar" : "Colapsar sidebar"}
         >
           <ChevronDown className={cn("size-4 transition-transform duration-300", collapsed ? "-rotate-90" : "rotate-90")} />
@@ -384,17 +393,19 @@ export function Sidebar({ onClose, collapsed = false, onToggleCollapse }: { onCl
             </span>
           </div>
         )}
-        <button
-          onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className={cn("transition-colors hover:text-[var(--text-muted)] text-[var(--text-subtle)]", collapsed ? "" : "ml-auto")}
-          title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-        >
-          {theme === "dark" ? <Sun className={cn("transition-all duration-300", collapsed ? "size-4" : "size-[15px]")} /> : <Moon className={cn("transition-all duration-300", collapsed ? "size-4" : "size-[15px]")} />}
-        </button>
+        {collapsed && (
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="text-[var(--text-subtle)] transition-colors hover:text-[var(--text-muted)]"
+            title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+          >
+            {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
+          </button>
+        )}
         {!collapsed && (
           <button
             onClick={logout}
-            className="text-[var(--text-subtle)] transition-colors hover:text-[var(--text-muted)]"
+            className="ml-auto text-[var(--text-subtle)] transition-colors hover:text-[var(--text-muted)]"
             title="Cerrar sesion"
           >
             <LogOut className="size-[15px]" />

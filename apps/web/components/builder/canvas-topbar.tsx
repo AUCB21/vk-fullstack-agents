@@ -28,8 +28,10 @@ export function CanvasTopbar() {
     setThemeLocal(next);
     localStorage.setItem("vk-theme", next);
     const el = document.documentElement;
+    el.classList.add("theme-transitioning");
     el.classList.remove("theme-light");
     if (next === "light") el.classList.add("theme-light");
+    setTimeout(() => el.classList.remove("theme-transitioning"), 250);
   }
 
   return (

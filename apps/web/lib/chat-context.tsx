@@ -147,9 +147,12 @@ export function ChatProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const el = document.documentElement;
+    el.classList.add("theme-transitioning");
     el.classList.remove("theme-light");
     if (theme === "light") el.classList.add("theme-light");
     localStorage.setItem("vk-theme", theme);
+    const timer = setTimeout(() => el.classList.remove("theme-transitioning"), 250);
+    return () => clearTimeout(timer);
   }, [theme]);
 
   const setTheme = useCallback((t: "dark" | "light") => {
