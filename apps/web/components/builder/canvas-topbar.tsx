@@ -38,7 +38,7 @@ export function CanvasTopbar() {
     <div className="relative flex h-[52px] shrink-0 items-center gap-3 border-b border-[var(--border)] bg-[var(--background)] px-[18px]">
       {/* Breadcrumbs */}
       <div className="flex items-center gap-2 text-[13px]">
-        <a href="/chat" className="text-[var(--text-subtle)] no-underline hover:text-[var(--text-muted)]">
+        <a href="/builder" className="text-[var(--text-subtle)] no-underline hover:text-[var(--text-muted)]">
           Agents
         </a>
         <span className="text-[var(--text-subtle)]">/</span>
