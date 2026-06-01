@@ -28,9 +28,11 @@ type BuilderContextValue = {
   agentId: string;
   agentName: string;
   setAgentName: (name: string) => void;
+  agentIcon: string;
   agentVersion: string;
   agentStatus: "draft" | "published";
   setAgentStatus: (status: "draft" | "published") => void;
+  saveMeta: (name: string, icon: string) => void;
 
   addNode: (template: NodeTemplate, x: number, y: number) => void;
   moveNode: (id: string, dx: number, dy: number) => void;
@@ -38,6 +40,7 @@ type BuilderContextValue = {
   toggleSelectNode: (id: string) => void;
   selectWire: (id: string | null) => void;
   deleteSelected: () => void;
+  deleteNode: (id: string) => void;
   duplicateNode: (id: string) => void;
   updateNodeConfig: (id: string, config: Record<string, unknown>) => void;
   updateNodeRows: (id: string, rows: NodeRow[]) => void;
@@ -76,6 +79,7 @@ export function BuilderProvider({
 
   const [state, dispatch] = useReducer(builderReducer, initialBuilderState);
   const [agentName, setAgentName] = useState("Nuevo agente");
+  const [agentIcon, setAgentIcon] = useState("Package");
   const [agentVersion] = useState("v0.1");
   const [agentStatus, setAgentStatus] = useState<"draft" | "published">("draft");
   const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
@@ -92,6 +96,7 @@ export function BuilderProvider({
       if (config) {
         dispatch({ type: "LOAD", nodes: config.nodes, wires: config.wires });
         setAgentName(config.name);
+        setAgentIcon(config.icon);
         setAgentStatus(config.status);
         return;
       }
@@ -101,6 +106,23 @@ export function BuilderProvider({
     dispatch({ type: "LOAD", nodes: INITIAL_NODES_DEMO, wires: INITIAL_WIRES_DEMO });
   }, [agentId, isNew]);
 
+  // Build the persisted config from current state — single source of truth
+  const buildConfig = useCallback(
+    (overrides?: Partial<AgentConfig>): AgentConfig => ({
+      id: agentId,
+      name: agentName,
+      icon: agentIcon,
+      version: agentVersion,
+      status: agentStatus,
+      nodes: state.nodes,
+      wires: state.wires,
+      createdAt: loadAgentConfig(agentId)?.createdAt ?? Date.now(),
+      updatedAt: Date.now(),
+      ...overrides,
+    }),
+    [agentId, agentName, agentIcon, agentVersion, agentStatus, state.nodes, state.wires],
+  );
+
   // Auto-save debounced
   useEffect(() => {
     if (!state.dirty) return;
@@ -109,18 +131,7 @@ export function BuilderProvider({
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       setSaveStatus("saving");
-      const config: AgentConfig = {
-        id: agentId,
-        name: agentName,
-        icon: "Package",
-        version: agentVersion,
-        status: agentStatus,
-        nodes: state.nodes,
-        wires: state.wires,
-        createdAt: loadAgentConfig(agentId)?.createdAt ?? Date.now(),
-        updatedAt: Date.now(),
-      };
-      saveAgentConfig(config);
+      saveAgentConfig(buildConfig());
       dispatch({ type: "MARK_CLEAN" });
       setSaveStatus("saved");
     }, 2000);
@@ -128,7 +139,20 @@ export function BuilderProvider({
     return () => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
-  }, [state.dirty, state.nodes, state.wires, agentId, agentName, agentVersion, agentStatus]);
+  }, [state.dirty, buildConfig]);
+
+  // Persist agent metadata (name / icon) immediately — bypasses the dirty flag,
+  // which only tracks node/wire changes. Pass fresh values to avoid stale closures.
+  const saveMeta = useCallback(
+    (name: string, icon: string) => {
+      setAgentName(name);
+      setAgentIcon(icon);
+      saveAgentConfig(buildConfig({ name, icon }));
+      dispatch({ type: "MARK_CLEAN" });
+      setSaveStatus("saved");
+    },
+    [buildConfig],
+  );
 
   // Convenience actions
   const addNode = useCallback((t: NodeTemplate, x: number, y: number) => dispatch({ type: "ADD_NODE", template: t, x, y }), []);
@@ -137,6 +161,7 @@ export function BuilderProvider({
   const toggleSelectNode = useCallback((id: string) => dispatch({ type: "TOGGLE_SELECT_NODE", id }), []);
   const selectWire = useCallback((id: string | null) => dispatch({ type: "SELECT_WIRE", id }), []);
   const deleteSelected = useCallback(() => dispatch({ type: "DELETE_SELECTED" }), []);
+  const deleteNode = useCallback((id: string) => dispatch({ type: "DELETE_NODE", id }), []);
   const duplicateNode = useCallback((id: string) => dispatch({ type: "DUPLICATE_NODE", id }), []);
   const updateNodeConfig = useCallback((id: string, config: Record<string, unknown>) => dispatch({ type: "UPDATE_NODE_CONFIG", id, config }), []);
   const updateNodeRows = useCallback((id: string, rows: NodeRow[]) => dispatch({ type: "UPDATE_NODE_ROWS", id, rows }), []);
@@ -176,42 +201,20 @@ export function BuilderProvider({
   // Publish — save immediately + set status
   const publish = useCallback(() => {
     setAgentStatus("published");
-    const config: AgentConfig = {
-      id: agentId,
-      name: agentName,
-      icon: "Package",
-      version: agentVersion,
-      status: "published",
-      nodes: state.nodes,
-      wires: state.wires,
-      createdAt: loadAgentConfig(agentId)?.createdAt ?? Date.now(),
-      updatedAt: Date.now(),
-    };
-    saveAgentConfig(config);
+    saveAgentConfig(buildConfig({ status: "published" }));
     dispatch({ type: "MARK_CLEAN" });
     setSaveStatus("saved");
-  }, [agentId, agentName, agentVersion, state.nodes, state.wires]);
+  }, [buildConfig]);
 
   // onbeforeunload — flush unsaved changes
   useEffect(() => {
     const handleUnload = () => {
       if (!state.dirty) return;
-      const config: AgentConfig = {
-        id: agentId,
-        name: agentName,
-        icon: "Package",
-        version: agentVersion,
-        status: agentStatus,
-        nodes: state.nodes,
-        wires: state.wires,
-        createdAt: loadAgentConfig(agentId)?.createdAt ?? Date.now(),
-        updatedAt: Date.now(),
-      };
-      saveAgentConfig(config);
+      saveAgentConfig(buildConfig());
     };
     window.addEventListener("beforeunload", handleUnload);
     return () => window.removeEventListener("beforeunload", handleUnload);
-  }, [state.dirty, state.nodes, state.wires, agentId, agentName, agentVersion, agentStatus]);
+  }, [state.dirty, buildConfig]);
 
   const selectedNode = state.nodes.find((n) => n.id === state.selectedNodeId);
   const selectedWire = state.wires.find((w) => w.id === state.selectedWireId);
@@ -224,15 +227,18 @@ export function BuilderProvider({
         agentId,
         agentName,
         setAgentName,
+        agentIcon,
         agentVersion,
         agentStatus,
         setAgentStatus,
+        saveMeta,
         addNode,
         moveNode,
         selectNode,
         toggleSelectNode,
         selectWire,
         deleteSelected,
+        deleteNode,
         duplicateNode,
         updateNodeConfig,
         updateNodeRows,

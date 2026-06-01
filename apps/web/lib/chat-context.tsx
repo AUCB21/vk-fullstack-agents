@@ -124,7 +124,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
   const [busy, setBusy] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [citation, setCitation] = useState<CitationData>(null);
-  const [mode, setModeRaw] = useState<ChatMode>("mock");
+  const [mode, setModeRaw] = useState<ChatMode>("live");
   const [backendAvailable, setBackendAvailable] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [model, setModel] = useState(DEFAULT_MODEL);

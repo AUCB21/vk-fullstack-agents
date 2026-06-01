@@ -426,6 +426,42 @@ These phases build on the mandatory foundation. They can be implemented in any o
 - [ ] Mobile responsive layout
 - [ ] Integration with agent runtime (Phase 1 = visual only)
 
+**Inspector fixes**:
+- [x] Connect "Citar registros SAP" and "Auto-aprobar escrituras" toggles to `updateNodeConfig` (persist as `config.citeSAP` / `config.autoApprove`)
+- [x] Persist Prompt tab textarea to `node.config.prompt` (onBlur). Tab content now keyed by node id so uncontrolled inputs reset when switching nodes (fixed latent bug affecting prompt + maxTokens)
+- [x] Replace hardcoded Runs tab (4 mock entries) with real `state.testRun` derivation — node-by-node step trace (done/running/pending/skipped) + empty state. Runs tab badge now reflects `totalSteps` instead of hardcoded 12
+- [x] Made Properties rows editable for all node kinds (write back via `updateNodeRows`, onBlur). Pragmatic version of type-specific panels — bespoke per-kind field UIs still possible later
+
+**Sidebar fixes**:
+- [x] Sidebar made scrollable — root cause was `builder-layout` grid row sizing to content (overflowed viewport, footer clipped). Fixed with `grid-rows-[minmax(0,1fr)]`, which pins the row to the viewport so the existing `overflow-y-auto` body activates. Also fixes the Inspector overflow (same `h-full` pattern)
+- [x] Implement Settings button — modal for editing agent name + icon. Wired the `icon` field end-to-end (was dead: hardcoded `"Package"` in all 3 save sites + listing page). Now: `agentIcon` state + `saveMeta()` in context (persists immediately, bypassing the dirty flag which only tracks node/wire changes), icon picker in modal, icon shown in sidebar footer avatar + listing cards. Refactored the 3 duplicated save-config blocks into a single `buildConfig()` helper
+- [x] Add visual drag preview when dragging nodes from library to canvas. Root cause found: the only `DndContext` lived inside `Canvas`, but the draggable library items are in `BuilderSidebar` (sibling grid column, outside the context) — so sidebar→canvas drag could not even initiate. **Lifted `DndContext` up to `BuilderLayout`** so it wraps sidebar + canvas + inspector; moved the drag handlers + `dragOffset` state there (handlers now use committed `state.zoom/panX/panY` + `getElementById("builder-canvas")` instead of Canvas-internal refs). Added a `DragOverlay` that renders a card preview following the cursor for library drags. Canvas now takes `dragOffset` as a prop. Memoized `BuilderSidebar`, `Inspector`, `CanvasTopbar` (React.memo) so lifting `dragOffset` doesn't re-render them on every drag move — keeps canvas drag smooth. Topbar breadcrumb also uses the agent icon now
+
+**Canvas UX additions (done)**:
+- [x] Double-click a library item → creates the node at the center of the visible canvas (staggered offset so repeats don't stack). Complements drag-to-add
+- [x] Delete (X) button on each node — appears on hover (top-right), always red, hover adds a tinted bg. New `DELETE_NODE` reducer action + `deleteNode(id)` in context (removes node + connected wires, undoable via Ctrl+Z). No confirm dialog (undo covers it)
+- [x] Pan the canvas by plain left-drag on empty background (was Alt+drag / middle-click only). Guarded so it doesn't trigger on nodes, ports, buttons, or mid-wiring
+- [x] Minimap made functional — click or drag on the minimap pans the canvas (`SET_PAN`); node layout uses uniform scaling so positions are proportional. (Viewport-indicator rectangle was tried then removed by preference — read as confusing; see triage below)
+- [x] Zoom with plain mouse wheel (was Ctrl+scroll only). Zoom is now cursor-centered — pan is adjusted so the canvas point under the cursor stays fixed while zooming. Commits both `SET_ZOOM` + `SET_PAN` on the debounced gesture end
+
+**UI improvements (simple)**:
+- [ ] Inline node rename — double-click node header to edit name in place
+- [ ] Empty canvas CTA — when canvas has no nodes, show centered prompt with "Añadir nodo trigger" button
+- [ ] Node validation indicators — warning icon on nodes with missing required config (e.g. LLM node without prompt, tool node unconfigured)
+- [ ] Collapsible sidebar — button to hide left panel and expand canvas work area
+- [ ] Port tooltips — on hover show expected data type (e.g. "texto", "JSON")
+
+**Idea triage (2026-06-01)** — categorized for the backlog:
+
+_Minimap viewport — RESOLVED by removal (2026-06-01)_:
+- [x] The celeste viewport rectangle didn't read as "what you're seeing" and was confusing. First switched the minimap to **uniform scaling** (`s = min(MAP_W/totalW, MAP_H/totalH)` + centered content) so node positions are proportional, then **removed the viewport rectangle entirely** by user preference. Minimap now shows only node positions + keeps click/drag-to-pan navigation
+
+_Quick win — worth it (low priority)_:
+- [ ] Ctrl/Cmd+Click as a multi-select alias. Multi-select already works via **Shift+Click** ([builder-node.tsx](apps/web/components/builder/builder-node.tsx)); add `|| e.ctrlKey || e.metaKey` to the toggle branch (~1 line). Redundant with Shift but matches common expectations
+
+_Already done / partial (low priority leftover)_:
+- [ ] Inline rename of the **agent** name inside `/builder/[id]` — the name is already editable via the settings modal (gear in sidebar footer, `saveMeta`). Only the inline variant is missing: double-click the topbar breadcrumb to edit in place. (Distinct from the node-level inline rename above)
+
 **Key files**:
 | File | Purpose |
 |------|---------|
