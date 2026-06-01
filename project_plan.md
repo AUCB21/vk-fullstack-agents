@@ -1,5 +1,18 @@
 # SAP Business One AI Agent Platform — Project Plan
 
+> ## ⚠️ Architecture pivot (2026-06-01) — read first
+>
+> **The Python / FastAPI backend (`services/agents/`) has been dropped.** The platform is now **all-Next.js/TypeScript** with minimal dependencies. SAP integration and agent execution live inside `apps/web`.
+>
+> Implications that **supersede** the sections below (kept for history):
+> - No `services/agents/`, no Python, no `docker-compose` agents service, no Anthropic _Python_ SDK. The agent runtime is the Next API routes using the Vercel **AI SDK** (`ai` package) + `@ai-sdk/anthropic` / `@ai-sdk/google`.
+> - SAP Service Layer client is now **TypeScript** in `apps/web/lib/sap/` (`session.ts`, `client.ts`, `types.ts`); tools in `apps/web/lib/agents/tools.ts`.
+> - **New direction: a real MCP server (Model Context Protocol)** hosted inside Next that exposes SAP B1 operations as MCP tools; the agent runtime (chat route, then the Builder) consumes them as an MCP client. See "Agent Builder runtime via MCP" near the end.
+> - Auth to SAP is handled 100% by the **Service Layer session manager** (`POST /Login`, cookie/session based) — no separate auth layer for the MCP server.
+> - Read the global data-integrity rule in the repo-root `CLAUDE.md` before touching SAP entities/fields.
+>
+> Sections referencing Python/FastAPI/Docker/proxy-middleware below are **historical** (Phases 0-1 were originally built that way, then superseded).
+
 ## Context
 
 A full-stack platform that connects LLM-powered agents to SAP Business One via its Service Layer REST API. Agents can be invoked on-demand through a chat interface or run autonomously on schedules.
@@ -479,6 +492,36 @@ _Already done / partial (low priority leftover)_:
 | `components/builder/run-banner.tsx` | Mock test run banner with step progress |
 | `components/builder/inspector.tsx` | 3-tab panel: config, prompt, runs |
 | `app/builder/page.tsx` | Agent listing grid with CRUD + delete confirmation |
+
+---
+
+### Agent Builder runtime via MCP (active plan — 2026-06-01)
+
+**Goal**: make Builder-created agents actually executable. Backend-first: build a real **MCP server** (Model Context Protocol) inside Next that exposes SAP B1 operations as MCP tools; the agent runtime consumes them as an MCP client. The Builder stays a thin client that selects tools + prompt. No Python.
+
+**Decisions locked**:
+- **MCP server** = real protocol, hosted as a Next route handler (HTTP/Streamable transport). Central dep: `@modelcontextprotocol/sdk` (+ helpers that ship with the SDK ecosystem, e.g. `mcp-handler`, are fine — "minimal deps" means don't pile redundant libs, not avoid the SDK).
+- **Read-only first.** Writes (create/modify documents) come later, **always via Service Layer** (never DI/direct DB — supportability/warranty), gated behind approval.
+- **Auth = SAP SL session manager only.** `POST {SAP_SL_BASE_URL}/Login` with `{ CompanyDB, UserName, Password, Language }` (Language e.g. `"25"`), session/cookie based (`B1SESSION`). Reuse `apps/web/lib/sap/session.ts`. Note: current `session.ts` does NOT yet send `Language` — add it. No separate MCP auth layer for now.
+- Reuse existing TS SAP layer (`lib/sap/{session,client,types}.ts`, `lib/agents/tools.ts`).
+
+**SAP surface to expose** (business op → expected SL entity, _exact entity/field names to be confirmed against SL metadata/docs before coding — do not assume_):
+- Artículos → `Items` (OITM) — _done (read)_
+- Socios de negocio → `BusinessPartners` (OCRD) — _done (read)_
+- Almacenes → `Warehouses` (OWHS)
+- Movimientos de stock → goods receipts/issues/transfers (`InventoryGenEntries` / `InventoryGenExits` / `StockTransfers`)
+- Órdenes de venta → `Orders` (ORDR); Órdenes de compra → `PurchaseOrders` (OPOR); Solicitudes (compra/venta) → `PurchaseRequests` / `Quotations`
+- Facturas clientes → `Invoices` (OINV); Facturas proveedores → `PurchaseInvoices` (OPCH)
+- Remitos → `DeliveryNotes` (ODLN) / `PurchaseDeliveryNotes` (OPDN)
+- Pagos recibidos → `IncomingPayments` (ORCT); Pagos efectuados → `VendorPayments` (OVPM)
+
+**Phases**:
+- [ ] **A — MCP server skeleton**: add `@modelcontextprotocol/sdk`; MCP route handler (Streamable HTTP) with a trivial `ping` tool to validate the protocol end-to-end. Verify exact SDK + AI-SDK MCP-client APIs against `node_modules`/docs first.
+- [ ] **B — SAP read tools as MCP tools**: wrap existing `sapClient` ops (items, item details, stock, business partners) as MCP tools (zod schemas). Add `Language` to SL Login.
+- [ ] **C — Runtime consumes MCP**: chat route loads tools from the MCP server via MCP client (replacing the static `inventoryTools` import); verify "inventory" agent works end-to-end through MCP.
+- [ ] **D — Expand SAP surface**: add the entities above incrementally (read), confirming SL entity/field names per item. Define read pagination/filter conventions.
+- [ ] **E — Builder integration**: `AgentConfig` (nodes/wires) → compile to system prompt + selected MCP tools; runtime executes; Test run + Publish become real.
+- [ ] **F — Writes (future)**: create/modify documents via SL, approval-gated (ties to Builder "Auto-aprobar escrituras" toggle).
 
 ---
 

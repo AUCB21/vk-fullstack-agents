@@ -1,7 +1,16 @@
 # Handoff — VK Agents (SAP B1 AI Platform)
 
 **Date**: 2026-06-01
-**State**: Phases 0-2 complete. Agent Builder core + UX polish complete (see "Recent session" below). Phase 3 (auth) not started; SAP SL still untested (no access yet).
+**State**: All-Next.js/TypeScript (Python dropped). Chat UI + Agent Builder UI complete. SAP SL client exists in TS (untested vs real SL). **Next focus: build a real MCP server for SAP B1** so Builder agents become executable.
+
+> ## ⚠️ Architecture pivot — Python is gone, going all-Next + MCP
+> The Python/FastAPI `services/agents/` backend was **dropped**. Everything is now Next.js/TS in `apps/web` with minimal deps. Sections below mentioning Python/FastAPI/Docker/uvicorn are **historical**.
+> - Agent runtime = Next API routes + Vercel **AI SDK** (`ai`) with `@ai-sdk/anthropic` / `@ai-sdk/google`.
+> - SAP SL client is TS: `apps/web/lib/sap/{session,client,types}.ts`; tools in `apps/web/lib/agents/tools.ts` (currently items + business partners, read-only).
+> - **Active plan: MCP server inside Next** exposing SAP B1 ops as MCP tools; runtime consumes them as MCP client; then Builder configs compile to (prompt + selected MCP tools). Full phased plan in `project_plan.md` → "Agent Builder runtime via MCP".
+> - SAP auth = Service Layer session only (`POST /Login` with CompanyDB/UserName/Password/**Language**; cookie/`B1SESSION`). `session.ts` needs `Language` added.
+> - Auth routes now exist: `app/api/auth/{login,logout,me,guest}/route.ts`.
+> - Global data-integrity rule lives in repo-root `CLAUDE.md` (never invent SAP entities/fields; memory → files → internet).
 
 ## Recent session — 2026-06-01
 
@@ -156,11 +165,14 @@ The frontend calls the LLMs directly from its API routes (chat defaults to live 
 
 ## Next steps (in order)
 
-1. **Test with real SAP SL** when access arrives — verify client, session, queries
-2. **Phase 3 — Auth flow** — login page, cookie-based sessions
-3. **Phase 4 — More agents** — sales + purchasing
-4. **Agent Builder mobile** — responsive layout, touch gestures
-5. **Agent Builder → runtime integration** — connect visual editor to agent execution
+1. **MCP server — Phase A**: add `@modelcontextprotocol/sdk`, stand up an MCP route handler (Streamable HTTP) with a `ping` tool. Verify exact MCP SDK + AI-SDK MCP-client APIs against `node_modules`/docs first (this Next/AI-SDK version may differ from training data).
+2. **MCP — Phase B**: wrap existing `sapClient` read ops (items, item details, stock, business partners) as MCP tools; add `Language` to SL Login.
+3. **MCP — Phase C**: chat route loads tools from the MCP server (replace static `inventoryTools`); verify "inventory" works through MCP.
+4. **MCP — Phase D**: expand SAP surface (warehouses, stock movements, sales/purchase orders, invoices, delivery notes, payments) — confirm each SL entity/field, read-only.
+5. **MCP — Phase E**: Builder integration — compile `AgentConfig` → prompt + selected MCP tools; Test run / Publish become real.
+6. Later: writes via SL (approval-gated), real SAP SL testing when access arrives, Builder mobile layout.
+
+> Full detail + locked decisions: `project_plan.md` → "Agent Builder runtime via MCP (active plan)".
 
 **Agent Builder backlog** (open items in `project_plan.md`, "UI improvements"): inline node rename (double-click header), empty-canvas CTA, per-node validation indicators, collapsible sidebar, port tooltips. Consider clearing the pre-existing react-hooks lint debt (see Recent session) as its own pass.
 
