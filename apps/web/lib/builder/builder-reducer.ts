@@ -36,6 +36,7 @@ export type BuilderAction =
   | { type: "SELECT_NODE"; id: string | null }
   | { type: "SELECT_WIRE"; id: string | null }
   | { type: "DELETE_SELECTED" }
+  | { type: "DELETE_NODE"; id: string }
   | { type: "DUPLICATE_NODE"; id: string }
   | { type: "UPDATE_NODE_CONFIG"; id: string; config: Record<string, unknown> }
   | { type: "UPDATE_NODE_ROWS"; id: string; rows: NodeRow[] }
@@ -198,6 +199,19 @@ export function builderReducer(state: BuilderState, action: BuilderAction): Buil
         };
       }
       return state;
+    }
+
+    case "DELETE_NODE": {
+      const s = pushHistory(state);
+      const nextSelected = new Set(s.selectedNodeIds);
+      nextSelected.delete(action.id);
+      return {
+        ...s,
+        nodes: s.nodes.filter((n) => n.id !== action.id),
+        wires: s.wires.filter((w) => w.from !== action.id && w.to !== action.id),
+        selectedNodeId: s.selectedNodeId === action.id ? null : s.selectedNodeId,
+        selectedNodeIds: nextSelected,
+      };
     }
 
     case "DUPLICATE_NODE": {

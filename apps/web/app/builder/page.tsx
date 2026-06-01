@@ -17,6 +17,7 @@ import {
   generateId,
 } from "@/lib/builder/builder-storage";
 import type { AgentConfig } from "@/lib/builder/builder-types";
+import { NodeIcon } from "@/components/builder/node-icon";
 import "./builder.css";
 
 function timeAgo(ts: number): string {
@@ -189,7 +190,7 @@ export default function BuilderListPage() {
                           color: "var(--dm-accent)",
                         }}
                       >
-                        <Package className="size-4" />
+                        <NodeIcon name={agent.icon} className="size-4" />
                       </div>
                       <div className="min-w-0">
                         <div className="truncate text-[14px] font-medium">{agent.name}</div>

@@ -1,17 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  DndContext,
-  useDraggable,
-  useDroppable,
-  type DragEndEvent,
-  type DragMoveEvent,
-  type DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
+import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type { DragOffset } from "@/lib/builder/wire-utils";
 import { useBuilder } from "@/lib/builder/builder-context";
 import { BuilderNode } from "./builder-node";
@@ -20,7 +10,6 @@ import { WireDrawing } from "./wire-drawing";
 import { CanvasControls } from "./canvas-controls";
 import { Minimap } from "./minimap";
 import { RunBanner } from "./run-banner";
-import { NODE_LIBRARY } from "@/lib/builder/node-library";
 import type { BuilderNode as BuilderNodeType } from "@/lib/builder/builder-types";
 
 /* ── Draggable wrapper — moves the real node, no ghost overlay ── */
@@ -57,13 +46,11 @@ function DraggableNode({ node, canvasZoom }: { node: BuilderNodeType; canvasZoom
 }
 
 /* ── Canvas ── */
-export function Canvas() {
-  const { state, dispatch, selectNode, selectWire, addNode, moveNode, cancelWiring, toggleSelectNode } = useBuilder();
+export function Canvas({ dragOffset }: { dragOffset: DragOffset }) {
+  const { state, dispatch, selectNode, selectWire, cancelWiring } = useBuilder();
   const canvasRef = useRef<HTMLDivElement>(null);
   const transformRef = useRef<HTMLDivElement>(null);
 
-  /* ─── Live drag offset for real-time wire updates ─── */
-  const [dragOffset, setDragOffset] = useState<DragOffset>(null);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   /* ─── Live pan/zoom refs — bypass React during interaction ─── */
@@ -90,68 +77,8 @@ export function Canvas() {
     applyTransform();
   }, [state.panX, state.panY, state.zoom, applyTransform]);
 
-  // Sensor with activation constraint to allow port clicks
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 5 },
-    }),
-  );
-
-  // Droppable area
+  // Droppable area — registered with the DndContext that lives in BuilderLayout
   const { setNodeRef: setDropRef } = useDroppable({ id: "canvas-drop" });
-
-  /* ─── Drag handlers: track offset for live wire updates ─── */
-  const handleDragStart = useCallback((_e: DragStartEvent) => {
-    // Reset offset at drag start (will be set on first move)
-    setDragOffset(null);
-  }, []);
-
-  const handleDragMove = useCallback((e: DragMoveEvent) => {
-    if (e.active.data.current?.type !== "canvas-node") return;
-    const z = liveZoom.current / 100;
-    setDragOffset({
-      nodeId: e.active.id as string,
-      dx: e.delta.x / z,
-      dy: e.delta.y / z,
-    });
-  }, []);
-
-  const handleDragEnd = useCallback(
-    (e: DragEndEvent) => {
-      // Clear live drag offset
-      setDragOffset(null);
-
-      const { active, over, delta } = e;
-
-      // Drag from sidebar (library item)
-      if (active.data.current?.type === "library-item" && over?.id === "canvas-drop") {
-        const templateId = active.data.current.templateId as string;
-        const template = NODE_LIBRARY.find((t) => t.id === templateId);
-        if (!template || !canvasRef.current) return;
-
-        const rect = canvasRef.current.getBoundingClientRect();
-        const z = liveZoom.current / 100;
-        const px = livePan.current.x;
-        const py = livePan.current.y;
-        const event = e.activatorEvent as PointerEvent;
-        const x = (event.clientX + delta.x - rect.left) / z - px - 120;
-        const y = (event.clientY + delta.y - rect.top) / z - py - 40;
-        addNode(template, Math.max(0, x), Math.max(0, y));
-        return;
-      }
-
-      // Drag existing node on canvas
-      if (active.data.current?.type === "canvas-node") {
-        const z = liveZoom.current / 100;
-        const dx = delta.x / z;
-        const dy = delta.y / z;
-        if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
-          moveNode(active.id as string, dx, dy);
-        }
-      }
-    },
-    [addNode, moveNode],
-  );
 
   // Canvas click — deselect all
   const handleCanvasClick = useCallback(() => {
@@ -166,7 +93,12 @@ export function Canvas() {
 
   /* ─── Pan: direct DOM manipulation, single dispatch on end ─── */
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    if (e.button === 1 || (e.button === 0 && e.altKey)) {
+    // Plain left-drag pans when starting on empty canvas (not on a node, port,
+    // or button, and not mid-wiring). Middle-click / Alt+left pan from anywhere.
+    const target = e.target as HTMLElement;
+    const onInteractive = target.closest("[data-id]") || target.closest("button");
+    const leftOnBackground = e.button === 0 && !e.altKey && !state.wiringFrom && !onInteractive;
+    if (e.button === 1 || (e.button === 0 && e.altKey) || leftOnBackground) {
       e.preventDefault();
       isPanningRef.current = true;
       setIsPanning(true);
@@ -177,7 +109,7 @@ export function Canvas() {
         panY: livePan.current.y,
       };
     }
-  }, []);
+  }, [state.wiringFrom]);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
@@ -201,21 +133,33 @@ export function Canvas() {
     }
   }, [dispatch]);
 
-  /* ─── Zoom: rAF + debounced commit ─── */
+  /* ─── Zoom: wheel zooms toward the cursor, rAF + debounced commit ─── */
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) {
-        e.preventDefault();
-        const delta = -Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY) * 0.3, 8);
-        liveZoom.current = Math.max(25, Math.min(200, liveZoom.current + delta));
-        cancelAnimationFrame(rafId.current);
-        rafId.current = requestAnimationFrame(applyTransform);
-        // Debounce state commit so React only reconciles once per zoom gesture
-        if (zoomTimer.current) clearTimeout(zoomTimer.current);
-        zoomTimer.current = setTimeout(() => {
-          dispatch({ type: "SET_ZOOM", zoom: Math.round(liveZoom.current) });
-        }, 150);
+      e.preventDefault();
+      const z0 = liveZoom.current / 100;
+      const delta = -Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY) * 0.3, 8);
+      const nextPct = Math.max(25, Math.min(200, liveZoom.current + delta));
+      const z1 = nextPct / 100;
+
+      // Keep the canvas point under the cursor fixed while zooming
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect && z1 !== z0) {
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        livePan.current.x += mx * (1 / z1 - 1 / z0);
+        livePan.current.y += my * (1 / z1 - 1 / z0);
       }
+      liveZoom.current = nextPct;
+
+      cancelAnimationFrame(rafId.current);
+      rafId.current = requestAnimationFrame(applyTransform);
+      // Debounce state commit so React only reconciles once per zoom gesture
+      if (zoomTimer.current) clearTimeout(zoomTimer.current);
+      zoomTimer.current = setTimeout(() => {
+        dispatch({ type: "SET_ZOOM", zoom: Math.round(liveZoom.current) });
+        dispatch({ type: "SET_PAN", x: livePan.current.x, y: livePan.current.y });
+      }, 150);
     },
     [dispatch, applyTransform],
   );
@@ -263,29 +207,23 @@ export function Canvas() {
   const currentZoom = liveZoom.current / 100;
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragStart={handleDragStart}
-      onDragMove={handleDragMove}
-      onDragEnd={handleDragEnd}
+    <div
+      ref={(el) => {
+        canvasRef.current = el;
+        setDropRef(el);
+      }}
+      id="builder-canvas"
+      className="builder-canvas relative flex-1 overflow-hidden outline-none"
+      style={{ cursor: isPanning ? "grabbing" : state.wiringFrom ? "crosshair" : "default" }}
+      tabIndex={0}
+      onClick={handleCanvasClick}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+      onWheel={handleWheel}
+      onKeyDown={handleKeyDown}
     >
-      <div
-        ref={(el) => {
-          canvasRef.current = el;
-          setDropRef(el);
-        }}
-        id="builder-canvas"
-        className="builder-canvas relative flex-1 overflow-hidden outline-none"
-        style={{ cursor: isPanning ? "grabbing" : state.wiringFrom ? "crosshair" : "default" }}
-        tabIndex={0}
-        onClick={handleCanvasClick}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseUp}
-        onWheel={handleWheel}
-        onKeyDown={handleKeyDown}
-      >
         {/* Transform container — updated via ref during pan/zoom for zero React re-renders */}
         <div
           ref={transformRef}
@@ -332,7 +270,6 @@ export function Canvas() {
             </div>
           </div>
         )}
-      </div>
-    </DndContext>
+    </div>
   );
 }

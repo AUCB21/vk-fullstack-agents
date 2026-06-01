@@ -1,6 +1,7 @@
 "use client";
 
 import { memo } from "react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BuilderNode as BuilderNodeType, PortSide } from "@/lib/builder/builder-types";
 import type { DraggableSyntheticListeners } from "@dnd-kit/core";
@@ -21,7 +22,7 @@ export const BuilderNode = memo(function BuilderNode({
   dragAttributes?: React.HTMLAttributes<HTMLElement>;
   isDragging?: boolean;
 }) {
-  const { state, selectNode, toggleSelectNode } = useBuilder();
+  const { state, selectNode, toggleSelectNode, deleteNode } = useBuilder();
   const isSelected = state.selectedNodeId === node.id || state.selectedNodeIds.has(node.id);
   const isRunTarget = state.testRun?.status === "running" && state.testRun.currentNodeId === node.id;
 
@@ -30,7 +31,7 @@ export const BuilderNode = memo(function BuilderNode({
       data-kind={node.kind}
       data-id={node.id}
       className={cn(
-        "relative w-[240px] rounded-[10px] border bg-[var(--bg-elev)] cursor-grab transition-[border-color,box-shadow] duration-150",
+        "group relative w-[240px] rounded-[10px] border bg-[var(--bg-elev)] cursor-grab transition-[border-color,box-shadow] duration-150",
         isSelected
           ? "border-[oklch(from_var(--dm-accent)_l_c_h_/_0.7)] shadow-[0_0_0_3px_var(--dm-accent-ring),var(--shadow)]"
           : "border-[var(--border)] shadow-[var(--shadow)] hover:border-[var(--border-strong)]",
@@ -53,6 +54,19 @@ export const BuilderNode = memo(function BuilderNode({
       {(["top", "right", "bottom", "left"] as PortSide[]).map((side) => (
         <Port key={side} nodeId={node.id} side={side} />
       ))}
+
+      {/* Delete button — visible on hover */}
+      <button
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
+          e.stopPropagation();
+          deleteNode(node.id);
+        }}
+        title="Eliminar nodo"
+        className="absolute -right-2 -top-2 z-20 grid size-5 cursor-pointer place-items-center rounded-full border border-[var(--border-strong)] bg-[var(--bg-elev)] text-[var(--status-err)] opacity-0 shadow-sm transition-[opacity,background-color] hover:bg-[oklch(from_var(--status-err)_l_c_h_/_0.15)] group-hover:opacity-100"
+      >
+        <X className="size-3" />
+      </button>
 
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-[var(--border)] px-[11px] py-[9px] text-[12.5px] font-medium text-[var(--foreground)]">

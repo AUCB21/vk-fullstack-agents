@@ -1,7 +1,37 @@
 # Handoff — VK Agents (SAP B1 AI Platform)
 
-**Date**: 2026-05-13
-**State**: Phases 0-2 complete, Agent Builder Fases 0-10 complete
+**Date**: 2026-06-01
+**State**: Phases 0-2 complete. Agent Builder core + UX polish complete (see "Recent session" below). Phase 3 (auth) not started; SAP SL still untested (no access yet).
+
+## Recent session — 2026-06-01
+
+Fixes + Agent Builder UX work. All changes are frontend (`apps/web`); TypeScript clean.
+
+**Chat fixes**:
+- `lib/sse-client.ts` — fixed a streaming bug: `currentEvent` was declared inside the read loop and reset each chunk, so SSE events split across chunks (common with Anthropic/Gemini) lost their event type and were silently dropped → no LLM response shown. Moved it outside the loop.
+- `lib/chat-context.tsx` — chat now defaults to `"live"` mode (was `"mock"`), so LLMs respond even without the agents backend running. Requires `ANTHROPIC_API_KEY` + `GEMINI_API_KEY` in `apps/web/.env.local`.
+
+**Agent Builder — inspector** (`components/builder/inspector.tsx`):
+- "Citar SAP" / "Auto-aprobar" toggles now persist (`config.citeSAP` / `config.autoApprove`); were hardcoded.
+- Prompt tab persists to `config.prompt` (onBlur); tab content keyed by node id so inputs reset when switching nodes.
+- Runs tab derives from real `state.testRun` (node-by-node trace + empty state); was 4 hardcoded mock rows.
+- Properties rows are now editable for all node kinds (`updateNodeRows`).
+
+**Agent Builder — layout / DnD** (big one):
+- The only `DndContext` lived inside `Canvas`, so the sidebar's library items (drag source) were outside it — sidebar→canvas drag could not even start. **Lifted `DndContext` to `BuilderLayout`** (wraps sidebar+canvas+inspector); added a `DragOverlay` cursor-following preview. Drag handlers + `dragOffset` now live in `BuilderLayout` (use committed `state.zoom/panX/panY` + `getElementById("builder-canvas")`). `Canvas` takes `dragOffset` as a prop. `BuilderSidebar`/`Inspector`/`CanvasTopbar` are `React.memo`'d so lifting `dragOffset` doesn't re-render them per drag-move.
+- Sidebar scroll fixed: root cause was the `builder-layout` grid row sizing to content; fixed with `grid-rows-[minmax(0,1fr)]`.
+- Settings modal (sidebar footer gear): edits agent **name + icon**. The `icon` field was dead (hardcoded `"Package"`); now wired end-to-end via `agentIcon` state + `saveMeta()` in context (persists immediately) and shown in footer avatar, topbar breadcrumb, listing cards. The 3 duplicated save blocks were unified into `buildConfig()`.
+
+**Agent Builder — canvas UX**:
+- Double-click a library item → creates the node at the visible canvas center (staggered).
+- Per-node delete (X) button on hover, always red, hover-tinted. New `DELETE_NODE` reducer action + `deleteNode(id)` (removes node + wires, undoable).
+- Pan by plain left-drag on empty canvas (was Alt/middle only); guarded against nodes/ports/buttons/wiring.
+- Minimap now functional: shows node positions (uniform scale) + click/drag to pan. (A viewport-indicator rectangle was added then removed by preference — read as confusing.)
+- Wheel zoom (was Ctrl+scroll only), cursor-centered.
+
+**Other**:
+- Installed `frontend-design` skill at `.claude/skills/frontend-design/`.
+- ⚠️ **Lint debt (pre-existing, not from this work)**: `eslint` exits 1 on `lib/builder/builder-context.tsx` and `app/builder/page.tsx` due to `react-hooks/refs` (`idRef.current` in render) and `react-hooks/set-state-in-effect` — surfaced after a dep upgrade in the 2026-05-31 `npm install`. `tsc --noEmit` is clean. A non-zero eslint from those specific rules/files is NOT a regression. Use the local binaries (`./node_modules/.bin/tsc.cmd` / `eslint.cmd`), not `npx` (pulls the wrong `tsc`).
 
 ## What exists and works
 
@@ -45,13 +75,13 @@
 - **Fan-out** — multiple wires on same port arrive from different angles
 - **Live wire updates** during node drag
 - **Performance** — ref-based pan/zoom (zero re-renders during interaction), GPU compositing, React.memo
-- **Canvas features** — undo/redo (50 steps), keyboard shortcuts, minimap, zoom controls, inspector
+- **Canvas features** — undo/redo (50 steps), keyboard shortcuts, functional minimap (click/drag to navigate), wheel zoom (cursor-centered) + zoom controls, left-drag pan, inspector
 - **Multi-selection** — Shift+click to add/remove, Ctrl+A selects all, batch delete
 - **Delete confirmation** — modal dialog when deleting nodes with connected wires
 - **Test run** — mock simulation stepping through nodes with animated banner + stop/dismiss
 - **Publish flow** — saves immediately, sets status to "published", toast notification
 - **Persistence** — auto-save to localStorage (debounced 2s), onbeforeunload flush
-- **Inspector panel** — 3 tabs: Config (model, temp, tokens, behavior), Prompt (template + variables), Runs (mock data)
+- **Inspector panel** — 3 tabs: Config (model, temp, tokens, behavior toggles + editable properties — all persist), Prompt (persists to config.prompt), Runs (real test-run trace). Per-node delete via hover X. Settings modal for agent name + icon
 - **Agent listing page** — `/builder` with grid, delete confirmation, theme toggle, new agent
 - **Scrollable sidebar** — node library scrolls independently from fixed header/footer
 - **Light theme** — full builder support with adjusted grid, wires, ports
@@ -88,6 +118,15 @@ LLM_MODEL=claude-sonnet-4-20250514
 DEV_MODE=true
 ```
 
+**Required .env.local** (at apps/web/.env.local — note the name, NOT `.local.env`):
+```
+ANTHROPIC_API_KEY=sk-ant-...     # Haiku + Sonnet in chat
+GEMINI_API_KEY=AIza...           # gemini-3.1-flash-lite (default chat model)
+SESSION_SECRET=...               # any long random string for dev
+# SAP_SL_* vars when SL access is available
+```
+The frontend calls the LLMs directly from its API routes (chat defaults to live mode), so these keys are needed for chat to respond even without the Python backend.
+
 ## Key files
 
 | Area | File | Purpose |
@@ -122,3 +161,7 @@ DEV_MODE=true
 3. **Phase 4 — More agents** — sales + purchasing
 4. **Agent Builder mobile** — responsive layout, touch gestures
 5. **Agent Builder → runtime integration** — connect visual editor to agent execution
+
+**Agent Builder backlog** (open items in `project_plan.md`, "UI improvements"): inline node rename (double-click header), empty-canvas CTA, per-node validation indicators, collapsible sidebar, port tooltips. Consider clearing the pre-existing react-hooks lint debt (see Recent session) as its own pass.
+
+> Builder changes this session were verified by HTTP-200 smoke of `/builder/[id]` (dev server compiles + SSR renders); the actual drag/zoom/minimap **interactions were not driven by an automated browser** (no playwright/chromium-cli installed) — verify those manually or install Playwright.

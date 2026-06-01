@@ -1,12 +1,13 @@
 "use client";
 
-import { Package, Layers, Share2, Sparkles, ArrowUp, Sun, Moon, Check } from "lucide-react";
+import { Layers, Share2, Sparkles, ArrowUp, Sun, Moon, Check } from "lucide-react";
 import { useBuilder } from "@/lib/builder/builder-context";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { memo, useState, useEffect } from "react";
+import { NodeIcon } from "./node-icon";
 
-export function CanvasTopbar() {
-  const { agentName, agentVersion, agentStatus, startTestRun, publish, state } = useBuilder();
+function CanvasTopbarInner() {
+  const { agentName, agentIcon, agentVersion, agentStatus, startTestRun, publish, state } = useBuilder();
   const [theme, setThemeLocal] = useState<"dark" | "light">("dark");
   const [showToast, setShowToast] = useState(false);
 
@@ -43,7 +44,7 @@ export function CanvasTopbar() {
         </a>
         <span className="text-[var(--text-subtle)]">/</span>
         <span className="inline-flex items-center gap-1.5 rounded-[6px] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-[13px] font-medium text-[var(--foreground)]">
-          <Package className="size-3 text-[var(--dm-accent)]" />
+          <NodeIcon name={agentIcon} className="size-3 text-[var(--dm-accent)]" />
           {agentName}
           <span className="ml-0.5 border-l border-[var(--border)] pl-1.5 font-mono text-[10px] text-[var(--text-subtle)]">
             {agentVersion} · {agentStatus}
@@ -115,3 +116,5 @@ export function CanvasTopbar() {
     </div>
   );
 }
+
+export const CanvasTopbar = memo(CanvasTopbarInner);

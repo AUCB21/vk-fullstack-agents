@@ -46,6 +46,7 @@ export async function streamChat(
 
   const decoder = new TextDecoder();
   let buffer = "";
+  let currentEvent = "";
 
   while (true) {
     const { done, value } = await reader.read();
@@ -56,8 +57,6 @@ export async function streamChat(
     // Parse SSE lines from buffer
     const lines = buffer.split("\n");
     buffer = lines.pop() || "";
-
-    let currentEvent = "";
 
     for (const line of lines) {
       if (line.startsWith("event: ")) {
