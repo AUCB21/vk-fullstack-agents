@@ -11,3 +11,7 @@ Cuando necesites ese tipo de información, resolvela en este orden y frená en e
 3. **Internet** — si seguís sin encontrarlo, buscá en la web (ej. referencias del SAP B1 Service Layer / tablas) y **citá la fuente**.
 
 Si ninguno de los tres lo resuelve, **decilo explícitamente y preguntá** — no adivines.
+
+## Documentación de librerías/APIs — buscá en internet proactivamente
+
+Para APIs, firmas y comportamiento de librerías (MCP SDK `@modelcontextprotocol/sdk`, **Zod 4**, AI SDK `ai`, Next.js 16, etc.), buscá la documentación oficial en internet de forma **proactiva** y citá la fuente — NO dependas del training data, que puede estar desactualizado o ser de otra versión mayor. Verificá también contra `node_modules` cuando aplique. Esto es esperado y recomendado, no un último recurso.
