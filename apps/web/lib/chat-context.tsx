@@ -46,11 +46,15 @@ export type LiveToolCall = {
   status: "running" | "done" | "error";
 };
 
+export type LiveSource = { url: string; title: string };
+
 export type LiveAssistantMessage = {
   role: "live-assistant";
   agent: string;
   text: string;
+  reasoning: string;
   toolCalls: LiveToolCall[];
+  sources: LiveSource[];
   status: "streaming" | "done" | "error";
   errorText?: string;
   key: number;
@@ -332,7 +336,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       role: "live-assistant",
       agent: agent?.name || "Agent",
       text: "",
+      reasoning: "",
       toolCalls: [],
+      sources: [],
       status: "streaming",
       key: Date.now(),
     };
@@ -365,6 +371,30 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             const last = updated[updated.length - 1];
             if (last && last.role === "live-assistant") {
               updated[updated.length - 1] = { ...last, text: last.text + content };
+            }
+            return updated;
+          });
+        },
+        onReasoningDelta: (content) => {
+          setConversation((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last && last.role === "live-assistant") {
+              updated[updated.length - 1] = { ...last, reasoning: last.reasoning + content };
+            }
+            return updated;
+          });
+        },
+        onSource: (url, title) => {
+          setConversation((prev) => {
+            const updated = [...prev];
+            const last = updated[updated.length - 1];
+            if (last && last.role === "live-assistant") {
+              if (last.sources.some((s) => s.url === url)) return prev;
+              updated[updated.length - 1] = {
+                ...last,
+                sources: [...last.sources, { url, title }],
+              };
             }
             return updated;
           });

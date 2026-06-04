@@ -83,12 +83,12 @@ Operación de negocio → entidad esperada del Service Layer. **Nombres exactos 
 
 ## 6. Fases
 
-### Fase A — Esqueleto del MCP server
-- [ ] Verificar APIs/versión del MCP SDK y el wiring de Streamable HTTP en Next App Router (decidir `mcp-handler` vs SDK directo). Verificar compat Zod 4.
-- [ ] Instalar dep(s): `@modelcontextprotocol/sdk` (+ `mcp-handler` si aplica).
-- [ ] Route handler MCP (ej. `app/api/mcp/route.ts`) con `McpServer` (`name: "sap-b1-mcp-server"`) + transporte stateless.
-- [ ] Tool trivial `ping` (sin SAP) con su schema/annotations.
-- **Aceptación**: el endpoint responde el handshake MCP y `ping` se puede invocar (MCP Inspector: `npx @modelcontextprotocol/inspector`, o un cliente mínimo).
+### Fase A — Esqueleto del MCP server ✅
+- [x] Verificar APIs/versión del MCP SDK y el wiring de Streamable HTTP en Next App Router. SDK v1.29.0, `mcp-handler` descartado, `WebStandardStreamableHTTPServerTransport` (Web Fetch API). Zod 4 compatible (`^3.25 || ^4.0`). Imports requieren `.js` explícito para Turbopack.
+- [x] Instalar `@modelcontextprotocol/sdk@^1.29.0`.
+- [x] Route handler `app/api/mcp/route.ts` con `McpServer` (`name: "sap-b1-mcp-server"`) + transport stateless. Agregar `/api/mcp` a `PUBLIC_PATHS` en `proxy.ts` (middleware de auth de Next.js 16).
+- [x] Tool `ping` (sin SAP) con schema/annotations.
+- **Aceptación**: ✅ `POST /api/mcp` con `initialize` devuelve JSON-RPC `2024-11-05`, `sap-b1-mcp-server v1.0.0`, tools capability. SAP SL login validado (HTTP 200 + SessionId).
 
 ### Fase B — Tools SAP de lectura (sobre `sapClient`)
 > Bootstrap: B usa lo que `sapClient` ya tiene (items + BPs) para validar rápido el loop MCP→runtime. La prioridad real (Compras y Ventas) se construye en la Fase D, donde se agregan los métodos nuevos al client.
@@ -131,10 +131,11 @@ Operación de negocio → entidad esperada del Service Layer. **Nombres exactos 
 
 ## 7. Riesgos / cosas a vigilar
 
-- **Zod 4 ↔ MCP SDK**: posible incompatibilidad de schema; validar en Fase A antes de avanzar.
-- **App Router vs transport Node**: el adaptador correcto es clave; `mcp-handler` reduce riesgo.
+- **Zod 4 ↔ MCP SDK**: resuelto — SDK v1.29.0 acepta `zod ^3.25 || ^4.0` nativamente. `mcp-handler` descartado; se usa `WebStandardStreamableHTTPServerTransport` directamente (Web Fetch API, compatible con App Router sin adaptador). Imports del SDK: extensión `.js` explícita requerida por Turbopack (ej. `@modelcontextprotocol/sdk/server/mcp.js`).
+- **App Router vs transport Node**: resuelto — `WebStandardStreamableHTTPServerTransport` acepta `Request`/`Response` nativo, sin bridge necesario.
+- **Auth middleware (`proxy.ts`)**: Next.js 16 usa `proxy.ts` como middleware (además del estándar `middleware.ts`). Protege todas las rutas; `/api/mcp` requiere estar en `PUBLIC_PATHS` para acceso server-to-server sin cookie. Fase H agrega JWT propio.
 - **SSL self-signed del SL** (`hanab1:50000`): `session.ts` ya contempla `NODE_TLS_REJECT_UNAUTHORIZED`/`next.config`. Confirmar en entorno real.
-- **Sesión SL compartida**: el `globalSession` es singleton de servidor; ojo con concurrencia cuando haya múltiples requests/agentes (keep-alive vs expiry).
+- **Sesión SL compartida / race condition de login**: `globalSession` es singleton de proceso. Si dos requests llegan simultáneamente con la sesión expirada, ambos disparan `POST /Login` en paralelo — el segundo sessionId pisa al primero y el primer request falla con 401. No se manifiesta con un solo agente. **Pendiente**: resolver con mutex (`isAuthenticating` flag o Promise compartida) cuando haya concurrencia real (Phase F / agentes paralelos).
 - **Acceso sin SAP real**: hasta tener acceso al SL, las tools se validan con errores controlados / datos de prueba; no inventar respuestas.
 
 ## 8. Decisiones tomadas (2026-06-01)
@@ -143,5 +144,5 @@ Operación de negocio → entidad esperada del Service Layer. **Nombres exactos 
 2. **Prioridad de dominios** (Fase D): tiers en §5 — **T1 Compras y Ventas** (facturas, órdenes, remitos, pagos, listas de precios), T2 socios de negocio, T3 inventario (adición). Inventario no es prioritario; los ejemplos de inventario eran solo muestras de acceso futuro.
 6. **Arquitectura global**: MCP = superficie SAP completa; especialización por agente. Visión: agentes autónomos/paralelos (carga de facturas, update de listas de precios) → el diseño soporta escrituras (Fase F) y concurrencia.
 3. **`response_format` default = markdown** (más eficiente/liviano en tokens), con `json` disponible.
-4. **`mcp-handler`** confirmado para el wiring en App Router.
+4. **`mcp-handler`** descartado; SDK directo con `WebStandardStreamableHTTPServerTransport`. Imports con `.js` explícito para Turbopack.
 5. **Zod 4** confirmado. Uso proactivo de internet para docs de librerías = regla del repo (`CLAUDE.md` raíz).

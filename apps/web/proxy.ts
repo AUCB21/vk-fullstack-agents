@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { verifySession } from "./lib/auth/session";
 
-const PUBLIC_PATHS = ["/login", "/api/auth", "/api/health", "/chat", "/api/agents", "/builder"];
+const PUBLIC_PATHS = ["/login", "/api/auth", "/api/health"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -10,6 +10,7 @@ export async function proxy(request: NextRequest) {
   // Allow public paths, static assets, and Next.js internals
   if (
     PUBLIC_PATHS.some((p) => pathname.startsWith(p)) ||
+    pathname === "/api/mcp" || pathname.startsWith("/api/mcp/") ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon")
   ) {

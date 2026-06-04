@@ -516,7 +516,7 @@ _Already done / partial (low priority leftover)_:
 - Pagos recibidos → `IncomingPayments` (ORCT); Pagos efectuados → `VendorPayments` (OVPM)
 
 **Phases**:
-- [ ] **A — MCP server skeleton**: add `@modelcontextprotocol/sdk`; MCP route handler (Streamable HTTP) with a trivial `ping` tool to validate the protocol end-to-end. Verify exact SDK + AI-SDK MCP-client APIs against `node_modules`/docs first.
+- [x] **A — MCP server skeleton**: `@modelcontextprotocol/sdk@1.29.0`; `app/api/mcp/route.ts` con `WebStandardStreamableHTTPServerTransport` (stateless); tool `ping`. Validado: `initialize` → JSON-RPC `2024-11-05`, `sap-b1-mcp-server v1.0.0`. SAP SL login validado. Ver `mcp_project_plan.md` §7 para decisiones de impl.
 - [ ] **B — SAP read tools as MCP tools**: wrap existing `sapClient` ops (items, item details, stock, business partners) as MCP tools (zod schemas). Add `Language` to SL Login.
 - [ ] **C — Runtime consumes MCP**: chat route loads tools from the MCP server via MCP client (replacing the static `inventoryTools` import); verify "inventory" agent works end-to-end through MCP.
 - [ ] **D — Expand SAP surface**: add the entities above incrementally (read), confirming SL entity/field names per item. Define read pagination/filter conventions.

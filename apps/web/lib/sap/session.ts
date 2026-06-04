@@ -36,10 +36,14 @@ export class SAPSession {
       throw new SAPAuthError("Missing SAP credentials for login");
     }
 
+    const companyDb = process.env.SAP_SL_COMPANY_DB;
+    if (!companyDb) throw new Error("SAP_SL_COMPANY_DB is not set");
+
     const payload = {
-      CompanyDB: process.env.SAP_SL_COMPANY_DB,
+      CompanyDB: companyDb,
       UserName: user,
       Password: pass,
+      Language: Number(process.env.SAP_SL_LANGUAGE ?? "25"),
     };
 
     const response = await fetch(`${baseUrl}/Login`, {
@@ -98,7 +102,7 @@ export class SAPSession {
         }
       });
     } catch (e) {
-      console.warn("Failed to logout SAP SL session");
+      console.warn("SAP logout failed:", e instanceof Error ? e.message : String(e));
     } finally {
       this.sessionId = null;
       this.cookies = [];

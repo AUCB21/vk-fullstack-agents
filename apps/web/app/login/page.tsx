@@ -1,32 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Mail,
-  Lock,
-  Eye,
-  EyeOff,
-  ChevronDown,
-  Sun,
-  Moon,
-} from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Sun, Moon, Building2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+
+// Companies available for login — extend this list as needed
+const AVAILABLE_COMPANIES = [
+  { db: "DEMO_VK", label: "DEMO_VK" },
+];
 
 export default function LoginPage() {
   const { login, loginAsGuest } = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [companydb, setCompanydb] = useState(AVAILABLE_COMPANIES[0].db);
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  const [sapOpen, setSapOpen] = useState(false);
-  const [sapHost, setSapHost] = useState("");
-  const [sapCompany, setSapCompany] = useState("");
-  const [sapUser, setSapUser] = useState("");
-  const [sapPass, setSapPass] = useState("");
-
   const [theme, setTheme] = useState<"dark" | "light">("dark");
 
   function toggleTheme(t: "dark" | "light") {
@@ -39,14 +30,11 @@ export default function LoginPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!username.trim() || !password.trim()) return;
     setError(null);
     setSubmitting(true);
 
-    const loginUser = sapUser || email;
-    const loginPass = sapPass || password;
-
-    const err = await login(loginUser, loginPass);
+    const err = await login(username.trim(), password, companydb);
     if (err) {
       setError(err);
       setSubmitting(false);
@@ -58,7 +46,7 @@ export default function LoginPage() {
     await loginAsGuest();
   }
 
-  const canSubmit = email.trim().length > 0 && !submitting;
+  const canSubmit = username.trim().length > 0 && password.length > 0 && !submitting;
 
   return (
     <div className="login-page">
@@ -95,19 +83,51 @@ export default function LoginPage() {
           </div>
         )}
 
+        {/* Company selector */}
         <div className="field">
-          <label htmlFor="email">Usuario</label>
+          <label htmlFor="companydb">Empresa (CompanyDB)</label>
+          <div className="field-wrap">
+            <span className="lead-ic">
+              <Building2 className="ic" />
+            </span>
+            {AVAILABLE_COMPANIES.length > 1 ? (
+              <select
+                id="companydb"
+                className="with-ic"
+                value={companydb}
+                onChange={(e) => setCompanydb(e.target.value)}
+              >
+                {AVAILABLE_COMPANIES.map((c) => (
+                  <option key={c.db} value={c.db}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id="companydb"
+                type="text"
+                className="with-ic"
+                value={companydb}
+                onChange={(e) => setCompanydb(e.target.value)}
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="username">Usuario SAP B1</label>
           <div className="field-wrap">
             <span className="lead-ic">
               <Mail className="ic" />
             </span>
             <input
-              id="email"
+              id="username"
               type="text"
               placeholder="manager"
               className="with-ic"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               autoComplete="username"
               autoFocus
             />
@@ -115,7 +135,7 @@ export default function LoginPage() {
         </div>
 
         <div className="field">
-          <label htmlFor="pw">Contrasena</label>
+          <label htmlFor="pw">Contraseña</label>
           <div className="field-wrap">
             <span className="lead-ic">
               <Lock className="ic" />
@@ -123,7 +143,7 @@ export default function LoginPage() {
             <input
               id="pw"
               type={showPw ? "text" : "password"}
-              placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;"
+              placeholder="••••••••"
               className="with-ic"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -140,59 +160,8 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <button
-          type="button"
-          className={"sap-toggle" + (sapOpen ? " open" : "")}
-          onClick={() => setSapOpen((o) => !o)}
-        >
-          <ChevronDown className="chev" />
-          SAP B1 Service Layer
-          <span className="opt">Opcional</span>
-        </button>
-
-        {sapOpen && (
-          <div className="sap-body">
-            <div className="field-row">
-              <div className="field">
-                <input
-                  type="text"
-                  placeholder="Host : puerto"
-                  value={sapHost}
-                  onChange={(e) => setSapHost(e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <input
-                  type="text"
-                  placeholder="CompanyDB"
-                  value={sapCompany}
-                  onChange={(e) => setSapCompany(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="field-row">
-              <div className="field">
-                <input
-                  type="text"
-                  placeholder="B1 usuario"
-                  value={sapUser}
-                  onChange={(e) => setSapUser(e.target.value)}
-                />
-              </div>
-              <div className="field">
-                <input
-                  type="password"
-                  placeholder="B1 contrasena"
-                  value={sapPass}
-                  onChange={(e) => setSapPass(e.target.value)}
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
         <button type="submit" className="btn-primary" disabled={!canSubmit}>
-          {submitting ? "Ingresando\u2026" : "Ingresar"}
+          {submitting ? "Ingresando…" : "Ingresar"}
         </button>
 
         <button type="button" className="skip-link" onClick={handleGuest}>

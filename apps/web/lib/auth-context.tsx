@@ -18,7 +18,7 @@ export type AuthUser =
 type AuthContextValue = {
   user: AuthUser;
   loading: boolean;
-  login: (username: string, password: string) => Promise<string | null>;
+  login: (username: string, password: string, companydb?: string) => Promise<string | null>;
   loginAsGuest: () => Promise<void>;
   logout: () => Promise<void>;
 };
@@ -46,11 +46,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(
-    async (username: string, password: string): Promise<string | null> => {
+    async (username: string, password: string, companydb?: string): Promise<string | null> => {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, password, ...(companydb ? { companydb } : {}) }),
       });
       const data = await res.json();
 

@@ -163,14 +163,30 @@ The frontend calls the LLMs directly from its API routes (chat defaults to live 
 | Agent listing | apps/web/app/builder/page.tsx | Agent grid with CRUD |
 | Builder storage | apps/web/lib/builder/builder-storage.ts | localStorage CRUD for agents |
 
+## Recent session — 2026-06-03
+
+MCP server Phase A completa y validada. All changes in `apps/web`; TypeScript clean.
+
+- `@modelcontextprotocol/sdk@1.29.0` installed. Zod 4 fully supported (`^3.25 || ^4.0`). `mcp-handler` descartado — se usa `WebStandardStreamableHTTPServerTransport` directamente (acepta Web Fetch `Request`/`Response`, compatible con App Router sin bridge). Imports del SDK requieren extensión `.js` explícita (ej. `@modelcontextprotocol/sdk/server/mcp.js`) para que Turbopack los resuelva correctamente con el `"type":"module"` del paquete.
+- `lib/sap/session.ts` — `Language` agregado al payload de `POST /Login` (env `SAP_SL_LANGUAGE`, default `"25"`).
+- `apps/web/.env.local` creado con vars SAP de `sl.json` (`hanab1:50000`, `DEMO_VK`, `manager`/`123456`) + placeholders para API keys.
+- `lib/mcp/server.ts` — `createMcpServer()`: factory que crea una instancia `McpServer` por request (stateless), registra tools. Hoy: tool `ping`.
+- `app/api/mcp/route.ts` — route handler Streamable HTTP. GET/POST/DELETE → `WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined })`.
+- `proxy.ts` — es el middleware de auth de Next.js 16 (acepta el nombre `proxy.ts` además de `middleware.ts`). Protege todas las rutas salvo PUBLIC_PATHS. **Se agregó `/api/mcp` a PUBLIC_PATHS** — necesario para que el chat route lo invoque server-to-server sin cookie. Fase H implementará JWT propio.
+
+**Validaciones exitosas:** SAP SL login → HTTP 200 + SessionId. MCP `initialize` → JSON-RPC `2024-11-05`, `sap-b1-mcp-server v1.0.0`, tools capability activa.
+
+**Modelo de instancias:** `McpServer` + `Transport` = nueva instancia por request (stateless MCP). `sapClient` + `globalSession` = singletons de proceso (mantienen `B1SESSION`). El doble request (auth + query) solo ocurre en el primer request o tras expirar la sesión SAP (1800s), no en cada llamada.
+
+**⚠️ Race condition pendiente (menor):** si dos requests llegan simultáneamente con sesión SAP expirada, ambos intentan `POST /Login` en paralelo — el segundo sessionId pisa al primero. No se manifiesta con un solo agente. Resolver con mutex en `session.ts` cuando haya concurrencia real (Phase F). Documentado en `mcp_project_plan.md` §7.
+
 ## Next steps (in order)
 
-1. **MCP server — Phase A**: add `@modelcontextprotocol/sdk`, stand up an MCP route handler (Streamable HTTP) with a `ping` tool. Verify exact MCP SDK + AI-SDK MCP-client APIs against `node_modules`/docs first (this Next/AI-SDK version may differ from training data).
-2. **MCP — Phase B**: wrap existing `sapClient` read ops (items, item details, stock, business partners) as MCP tools; add `Language` to SL Login.
-3. **MCP — Phase C**: chat route loads tools from the MCP server (replace static `inventoryTools`); verify "inventory" works through MCP.
-4. **MCP — Phase D**: expand SAP surface (warehouses, stock movements, sales/purchase orders, invoices, delivery notes, payments) — confirm each SL entity/field, read-only.
-5. **MCP — Phase E**: Builder integration — compile `AgentConfig` → prompt + selected MCP tools; Test run / Publish become real.
-6. Later: writes via SL (approval-gated), real SAP SL testing when access arrives, Builder mobile layout.
+1. **MCP — Phase B**: wrap existing `sapClient` read ops (items, item details, stock, business partners) as MCP tools with `response_format`, pagination, actionable errors, `CHARACTER_LIMIT`. Structure: `lib/mcp/tools/`.
+2. **MCP — Phase C**: chat route loads tools from the MCP server via `@ai-sdk/mcp` HTTP client (replace static `inventoryTools`); verify "inventory" works end-to-end through MCP.
+3. **MCP — Phase D**: expand SAP surface (sales/purchase orders, invoices, delivery notes, payments, price lists, warehouses) — confirm each SL entity/field, read-only.
+4. **MCP — Phase E**: Builder integration — compile `AgentConfig` → prompt + selected MCP tools; Test run / Publish become real.
+5. Later: writes via SL (approval-gated), real SAP SL testing when access arrives, Builder mobile layout.
 
 > Full detail + locked decisions: `project_plan.md` → "Agent Builder runtime via MCP (active plan)".
 

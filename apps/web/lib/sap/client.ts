@@ -1,5 +1,17 @@
 import { globalSession, SAPAuthError } from "./session";
-import { Item, BusinessPartner, ODataParams, buildODataQuery } from "./types";
+import {
+  Item,
+  BusinessPartner,
+  Warehouse,
+  BatchNumber,
+  ItemWarehouseInfo,
+  SalesOrder,
+  PurchaseOrder,
+  Invoice,
+  PurchaseInvoice,
+  ODataParams,
+  buildODataQuery,
+} from "./types";
 
 export class SAPNotFoundError extends Error {
   constructor(message: string) {
@@ -120,6 +132,70 @@ export class SAPClient {
 
   async getBusinessPartner(cardCode: string): Promise<BusinessPartner> {
     return await this.request("GET", `/BusinessPartners('${encodeURIComponent(cardCode)}')`) as unknown as BusinessPartner;
+  }
+
+  // --- Warehouses ---
+
+  async getWarehouses(odata?: ODataParams): Promise<Warehouse[]> {
+    const data = await this.request("GET", "/Warehouses", odata);
+    return (data.value ?? []) as Warehouse[];
+  }
+
+  // --- Batches ---
+
+  async getBatches(odata?: ODataParams): Promise<BatchNumber[]> {
+    const data = await this.request("GET", "/BatchNumberDetails", odata);
+    return (data.value ?? []) as BatchNumber[];
+  }
+
+  async getItemWarehouseStock(itemCode: string): Promise<ItemWarehouseInfo[]> {
+    const data = await this.request("GET", `/Items('${encodeURIComponent(itemCode)}')/ItemWarehouseInfoCollection`);
+    const collection = (data.ItemWarehouseInfoCollection ?? []) as ItemWarehouseInfo[];
+    return collection.filter((w) => (w.InStock ?? 0) > 0 || (w.Committed ?? 0) > 0 || (w.Ordered ?? 0) > 0);
+  }
+
+  // --- Sales Orders ---
+
+  async getSalesOrders(odata?: ODataParams): Promise<SalesOrder[]> {
+    const data = await this.request("GET", "/Orders", odata);
+    return (data.value ?? []) as SalesOrder[];
+  }
+
+  async getSalesOrder(docEntry: number): Promise<SalesOrder> {
+    return await this.request("GET", `/Orders(${docEntry})`) as unknown as SalesOrder;
+  }
+
+  // --- Purchase Orders ---
+
+  async getPurchaseOrders(odata?: ODataParams): Promise<PurchaseOrder[]> {
+    const data = await this.request("GET", "/PurchaseOrders", odata);
+    return (data.value ?? []) as PurchaseOrder[];
+  }
+
+  async getPurchaseOrder(docEntry: number): Promise<PurchaseOrder> {
+    return await this.request("GET", `/PurchaseOrders(${docEntry})`) as unknown as PurchaseOrder;
+  }
+
+  // --- Customer Invoices ---
+
+  async getInvoices(odata?: ODataParams): Promise<Invoice[]> {
+    const data = await this.request("GET", "/Invoices", odata);
+    return (data.value ?? []) as Invoice[];
+  }
+
+  async getInvoice(docEntry: number): Promise<Invoice> {
+    return await this.request("GET", `/Invoices(${docEntry})`) as unknown as Invoice;
+  }
+
+  // --- Purchase Invoices ---
+
+  async getPurchaseInvoices(odata?: ODataParams): Promise<PurchaseInvoice[]> {
+    const data = await this.request("GET", "/PurchaseInvoices", odata);
+    return (data.value ?? []) as PurchaseInvoice[];
+  }
+
+  async getPurchaseInvoice(docEntry: number): Promise<PurchaseInvoice> {
+    return await this.request("GET", `/PurchaseInvoices(${docEntry})`) as unknown as PurchaseInvoice;
   }
 }
 

@@ -52,7 +52,7 @@ export function sessionCookieOptions(token: string) {
     value: token,
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
+    sameSite: "strict" as const,
     path: "/",
     maxAge: 1800, // 30 min — matches SAP session timeout
   };
@@ -64,7 +64,7 @@ export function deleteSessionCookie() {
     value: "",
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
+    sameSite: "strict" as const,
     path: "/",
     maxAge: 0,
   };

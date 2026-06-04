@@ -7,6 +7,8 @@
 
 export type SSECallbacks = {
   onTextDelta?: (content: string) => void;
+  onReasoningDelta?: (content: string) => void;
+  onSource?: (url: string, title: string) => void;
   onToolCall?: (tool: string, input: Record<string, unknown>) => void;
   onToolResult?: (tool: string, result: Record<string, unknown>) => void;
   onError?: (error: string) => void;
@@ -81,6 +83,12 @@ function handleEvent(
     switch (event) {
       case "text_delta":
         callbacks.onTextDelta?.(data.content);
+        break;
+      case "reasoning_delta":
+        callbacks.onReasoningDelta?.(data.content);
+        break;
+      case "source":
+        callbacks.onSource?.(data.url, data.title);
         break;
       case "tool_call":
         callbacks.onToolCall?.(data.tool, data.input);
